@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Паспорт задачи 2.0 — Обоснование</title>
+<style>
+:root{
+  --ink:#1a1a1a; --ink-2:#5b5f66; --ink-3:#9299a2;
+  --bg:#fff; --surface:#f5f6f7; --surface-2:#ebedef; --line:#e2e5e8;
+  --yellow:#ffdd2d; --yellow-d:#f0c800;
+  --green:#28a05c; --green-bg:#e6f5ec; --green-line:#bfe3cd; --green-ink:#1d7a45;
+  --amber:#c98a00; --amber-bg:#fff5df; --amber-ink:#8a5f00;
+  --red:#e02b1d; --red-bg:#fdeceb; --red-line:#f6c9c5; --red-ink:#a01e16;
+  --r:12px; --r-s:8px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+
+header.top{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.96);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top-in{max-width:1340px;margin:0 auto;padding:8px 24px;display:flex;justify-content:flex-end;gap:8px}
+.btn-ghost{border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 11px;
+  font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;color:var(--ink-2)}
+.btn-ghost:hover{background:var(--surface);color:var(--ink)}
+
+.wrap{max-width:1340px;margin:0 auto;padding:30px 24px 140px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:44px;align-items:start}
+@media(max-width:1080px){.cols{grid-template-columns:1fr}}
+
+.stepnum{font-weight:800;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+h1.sth{font-size:29px;margin:4px 0 6px;letter-spacing:-.8px;font-weight:800}
+p.stsub{margin:0 0 24px;color:var(--ink-2);font-size:14px;max-width:70ch}
+
+input[type=text],input[type=date],select,textarea{font-family:inherit;font-size:14px;line-height:1.4;color:var(--ink);
+  background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 11px;outline:0;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--ink);box-shadow:0 0 0 3px rgba(26,26,26,.07)}
+input::placeholder,textarea::placeholder{color:var(--ink-3)}
+textarea{resize:vertical;min-height:68px}
+label.fl{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:6px}
+.f{margin-bottom:18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+
+table.t{width:100%;border-collapse:separate;border-spacing:0 7px}
+table.t th{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);
+  font-weight:700;text-align:left;padding:0 8px 2px}
+table.t td{vertical-align:top;padding:0 4px}
+table.t td:first-child{padding-left:0} table.t td:last-child{padding-right:0}
+table.t td.rh{font-size:13px;font-weight:700;padding-top:10px;white-space:nowrap;width:96px}
+.del{border:1px solid var(--line);background:#fff;color:var(--ink-3);border-radius:7px;width:30px;height:38px;
+  cursor:pointer;font-size:15px;line-height:1;padding:0}
+.del:hover{color:var(--red);border-color:var(--red-line)}
+.add{border:1px dashed var(--line);background:#fff;color:var(--ink-2);border-radius:8px;padding:9px 14px;
+  font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;margin-top:4px}
+.add:hover{border-color:var(--ink);color:var(--ink)}
+.tick{display:flex;gap:9px;align-items:center;padding-top:10px}
+.tick input[type=checkbox]{flex:none;width:16px;height:16px;accent-color:var(--ink);margin:0}
+.tick .nm{font-size:13.5px}
+.tick .nm.off{color:var(--ink-3)}
+
+.hyp{display:flex;flex-direction:column;gap:12px}
+.hr{display:grid;grid-template-columns:104px minmax(0,1fr);gap:14px;align-items:start}
+.hr .kw{font-size:15px;font-weight:800;padding-top:11px;text-align:right;letter-spacing:-.2px}
+.hr textarea{min-height:54px}
+.dt{max-width:220px}
+.al{padding-left:100px}
+@media(max-width:640px){.al{padding-left:0}}
+
+.cbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(224px,1fr));gap:7px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);
+  border-radius:var(--r-s);cursor:pointer;background:#fff}
+.opt:hover{background:var(--surface)}
+.opt>input{margin:2px 0 0;accent-color:var(--ink);flex:none;width:15px;height:15px}
+.opt>span{min-width:0}
+.opt .t{display:block;font-size:13.5px;font-weight:600;line-height:1.35}
+.opt.sel{border-color:var(--ink);box-shadow:0 0 0 2px rgba(26,26,26,.06)}
+
+.prac{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:60px;padding-top:26px;border-top:1px solid var(--line)}
+@media(max-width:760px){.prac{grid-template-columns:1fr}}
+.pc{font-size:13.5px;line-height:1.55;color:var(--ink-2)}
+.pc .pt{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:var(--ink);margin-bottom:9px}
+.pc .ic{width:19px;height:19px;border-radius:50%;flex:none;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:800;line-height:1}
+.pc.ok .ic{background:var(--green);color:#fff}
+.pc.no .ic{background:var(--red);color:#fff}
+.pc ul{margin:0;padding-left:17px} .pc li{margin-bottom:6px} .pc li:last-child{margin:0}
+
+.nav{display:flex;align-items:center;gap:12px;margin-top:30px}
+.btn{border:0;border-radius:9px;padding:12px 22px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer}
+.btn.pri{background:var(--yellow);color:var(--ink)}
+.btn.pri:hover{background:var(--yellow-d)}
+.btn.sec{background:#fff;border:1px solid var(--line);color:var(--ink-2);min-width:88px;padding-left:0;padding-right:0}
+.btn.sec:hover{background:var(--surface)}
+
+/* ---------- side navigation ---------- */
+.panel{position:sticky;top:58px}
+.card{border:1px solid var(--line);border-radius:var(--r);padding:8px;background:#fff}
+.nv{display:flex;gap:10px;padding:8px 9px;border-radius:9px;cursor:pointer}
+.nv:hover{background:var(--surface)}
+.nv.cur{background:var(--surface)}
+.nv .ic{width:19px;height:19px;border-radius:50%;flex:none;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:800;line-height:1;margin-top:2px;
+  background:transparent;border:1.5px solid var(--surface-2);color:transparent}
+.nv.g .ic{background:var(--green);border-color:var(--green);color:#fff}
+.nv.a .ic{background:var(--amber);border-color:var(--amber);color:#fff}
+.nv .bd{min-width:0}
+.nv .nm{font-size:14px;font-weight:600;color:var(--ink);line-height:1.35;letter-spacing:-.1px}
+.nv.cur .nm{font-weight:700}
+.nv .vl{font-size:11.5px;line-height:1.35;margin-top:2px;color:var(--ink-2);
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.nv .vl.miss{color:var(--ink-3)}
+.nv .vl.warn{color:var(--amber-ink)}
+
+/* ---------- final ---------- */
+.ready{border-radius:var(--r);padding:22px;color:#fff;background:var(--ink)}
+.ready .st{font-size:27px;font-weight:800;letter-spacing:-.7px;line-height:1.15}
+.ready .why{font-size:13.5px;color:rgba(255,255,255,.7);margin-top:10px;line-height:1.5;max-width:62ch}
+.todo{margin-top:18px;border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.todo h4{margin:0 0 11px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:800}
+ul.rules{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;font-size:13px;line-height:1.45}
+ul.rules li{display:flex;gap:10px;align-items:flex-start}
+ul.rules .rb{font-weight:800;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;
+  border-radius:5px;flex:none;margin-top:1px;min-width:120px;text-align:center}
+ul.rules .rb.no{background:var(--red-bg);color:var(--red-ink)}
+ul.rules .rb.nt{background:var(--surface);color:var(--ink-2)}
+ul.rules .rb.wait{background:var(--amber-bg);color:var(--amber-ink)}
+ul.rules .rb.yes{background:var(--green-bg);color:var(--green-ink)}
+ul.rules li.active{font-weight:600} ul.rules li:not(.active){color:var(--ink-2)}
+ul.rules li.jump{cursor:pointer}
+.recap{margin-top:18px;display:flex;flex-direction:column;gap:9px}
+.rc{border:1px solid var(--line);border-radius:var(--r-s);padding:12px 14px;font-size:13px;line-height:1.5}
+.rc b{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px}
+.rc.miss{background:var(--red-bg);border-color:var(--red-line);color:var(--red-ink)}
+.hint{font-size:12.5px;color:var(--ink-3)}
+
+/* ---------- status in sidebar ---------- */
+.status{margin:16px 9px 6px}
+.status .srow{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  border-radius:9px;padding:11px 13px}
+.status.g .srow{background:var(--green-bg)} .status.g .val{color:var(--green-ink)}
+.status.a .srow{background:var(--amber-bg)} .status.a .val{color:var(--amber-ink)}
+.status.r .srow{background:var(--red-bg)}   .status.r .val{color:var(--red-ink)}
+.status .val{font-size:13.5px;font-weight:700;letter-spacing:-.1px;line-height:1.3}
+.qbtn{width:19px;height:19px;flex:none;border-radius:50%;border:1px solid currentColor;background:transparent;
+  font-family:inherit;font-size:11px;font-weight:700;line-height:1;cursor:pointer;padding:0;opacity:.5}
+.status.g .qbtn{color:var(--green-ink)} .status.a .qbtn{color:var(--amber-ink)} .status.r .qbtn{color:var(--red-ink)}
+.qbtn:hover{opacity:1}
+.btn-wide{margin-top:8px}
+.status.g .val{color:var(--green-ink)} .status.a .val{color:var(--amber-ink)} .status.r .val{color:var(--red-ink)}
+.btn-wide{width:100%;margin-top:11px;border:0;border-radius:9px;padding:11px 14px;background:var(--yellow);
+  color:var(--ink);font-family:inherit;font-weight:700;font-size:13.5px;cursor:pointer}
+.btn-wide:hover{background:var(--yellow-d)}
+
+/* ---------- sent screen ---------- */
+.sent{display:none;max-width:660px;margin:40px auto 0}
+.sent.on{display:block}
+.sent .tick-big{width:52px;height:52px;border-radius:50%;background:var(--green);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;line-height:1;margin-bottom:22px}
+.sent h1{font-size:31px;line-height:1.15;letter-spacing:-.9px;margin:0 0 10px;font-weight:800}
+.sent .lead{font-size:15px;color:var(--ink-2);line-height:1.55;margin:0 0 26px;max-width:56ch}
+.sent .dl{border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;margin-bottom:26px}
+.sent .dl .k{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+.sent .dl .d{font-size:20px;font-weight:800;letter-spacing:-.4px;line-height:1.2}
+.sent .dl .n{font-size:12.5px;color:var(--ink-3);margin-top:6px;line-height:1.45}
+.sent h4{margin:0 0 12px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:800}
+.vars{display:flex;flex-direction:column;gap:9px;margin-bottom:28px}
+.var{display:flex;gap:12px;border:1px solid var(--line);border-radius:var(--r-s);padding:13px 15px}
+.var .vi{width:20px;height:20px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;line-height:1;margin-top:1px;color:#fff}
+.var.y .vi{background:var(--green)} .var.q .vi{background:var(--amber)} .var.n .vi{background:var(--red)}
+.var .vt{font-size:14px;font-weight:700;line-height:1.35}
+.var .vd{font-size:12.5px;color:var(--ink-2);line-height:1.45;margin-top:3px}
+.sent .badge{display:inline-block;font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:7px;margin-bottom:22px}
+.sent .badge.g{background:var(--green-bg);color:var(--green-ink)}
+.sent .badge.a{background:var(--amber-bg);color:var(--amber-ink)}
+.sent .badge.r{background:var(--red-bg);color:var(--red-ink)}
+
+/* ---------- modal ---------- */
+.ov{position:fixed;inset:0;background:rgba(20,20,20,.42);z-index:100;display:none;
+  align-items:flex-start;justify-content:center;padding:60px 20px;overflow:auto}
+.ov.on{display:flex}
+.md{background:#fff;border-radius:16px;max-width:640px;width:100%;padding:26px 28px 24px;
+  box-shadow:0 24px 60px rgba(0,0,0,.22)}
+.md .mh{display:flex;align-items:flex-start;gap:14px;margin-bottom:6px}
+.md .mt{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1.2;flex:1}
+.md .mw{font-size:13.5px;color:var(--ink-2);line-height:1.5;margin-bottom:20px}
+.md h4{margin:0 0 11px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:800}
+.md .sect{padding-top:18px;border-top:1px solid var(--line);margin-top:18px}
+.xbtn{border:1px solid var(--line);background:#fff;border-radius:8px;width:30px;height:30px;flex:none;
+  cursor:pointer;font-size:16px;line-height:1;color:var(--ink-2);padding:0}
+.xbtn:hover{background:var(--surface);color:var(--ink)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <button class="btn-ghost" id="demo">Пример</button>
+    <button class="btn-ghost" id="reset">Сбросить</button>
+  </div>
+</header>
+
+<div class="wrap">
+<div class="sent" id="sent">
+  <div class="tick-big">&#10003;</div>
+  <h1>Паспорт отправлен дизайнеру</h1>
+  <p class="lead">Дизайнер оценит задачу и вернётся с уточнениями.</p>
+  <div class="badge" id="sentBadge"></div>
+  <div class="dl">
+    <div class="k">Дизайнер вернётся</div>
+    <div class="d">до ближайшего планирования</div>
+  </div>
+  <h4>С чем он может вернуться</h4>
+  <div class="vars">
+    <div class="var y"><div class="vi">&#10003;</div><div>
+      <div class="vt">Берём в работу</div>
+      <div class="vd">Фактуры достаточно. Дизайнер называет размер и срок, вы получаете вилку в рабочих днях и дату готовности макетов.</div></div></div>
+    <div class="var q"><div class="vi">?</div><div>
+      <div class="vt">Вернётся с уточнениями</div>
+      <div class="vd">Чего-то не хватает, но задача рабочая. Вопросы придут списком — по конкретным шагам паспорта, чтобы вы не гадали, что именно добрать.</div></div></div>
+    <div class="var n"><div class="vi">&#10007;</div><div>
+      <div class="vt">Отказ с обоснованием</div>
+      <div class="vd">Задача не проходит по обоснованности: непонятно, зачем её делать, или проблема несоизмерима с ценой решения. В отказе будет сказано, что именно должно измениться, чтобы задачу взяли.</div></div></div>
+  </div>
+  <button class="btn pri" id="sentBack">Заполнить заново</button>
+</div>
+
+<div class="cols" id="formCols">
+  <main>
+    <h1 class="sth" id="stepTitle"></h1>
+    <p class="stsub" id="stepSub"></p>
+    <div id="stepBody"></div>
+    <div class="nav">
+      <button class="btn sec" id="prev">Назад</button>
+      <button class="btn pri" id="next">Дальше</button>
+    </div>
+    <div class="prac" id="prac"></div>
+  </main>
+
+  <aside class="panel">
+    <div class="card">
+      <div id="sideNav"></div>
+      <div class="status" id="status">
+        <div class="srow">
+          <div class="val" id="statusVal"></div>
+          <button class="qbtn" id="whyBtn" title="Почему такой статус">?</button>
+        </div>
+        <button class="btn-wide" id="send">Отправить дизайнеру</button>
+      </div>
+    </div>
+  </aside>
+</div>
+</div>
+
+<div class="ov" id="ov">
+  <div class="md">
+    <div class="mh">
+      <div class="mt" id="mdTitle"></div>
+      <button class="xbtn" id="mdClose">×</button>
+    </div>
+    <div class="mw" id="mdWhy"></div>
+    <div id="mdOpen"></div>
+    <div class="sect">
+      <h4>Правила передачи</h4>
+      <ul class="rules" id="mdRules"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ================= reference data ================= */
+
+const SHARES=["доля не указана","до 1%","1–5%","5–10%","10–25%","25–50%","более 50%"];
+const INFL=["влияние не указано","прямое","косвенное"];
+
+const SRC=[
+  {id:"an", n:"Аналитика, выгрузка",       k:"strong"},
+  {id:"iv", n:"Интервью с пользователями", k:"strong"},
+  {id:"ab", n:"Результат теста или A/B",   k:"strong"},
+  {id:"rs", n:"Исследования",              k:"strong"},
+  {id:"sup",n:"Обращения в поддержку",     k:"weak"},
+  {id:"op", n:"Мнение команды",            k:"opinion"}
+];
+
+const REFS=[
+  {id:"r1",n:"Аналоги внутри отдела"},
+  {id:"r2",n:"Аналоги внутри компании"},
+  {id:"r3",n:"Прямые конкуренты"},
+  {id:"r4",n:"Косвенные конкуренты"}
+];
+
+const CHECKS=["Сравнение метрики до и после","A/B-тест","Опрос","Интервью","Юзабилити-тест","Счётчик использования"];
+const SPECIAL=[
+  {id:"imp", t:"Проверить невозможно", ph:"Почему проверить нельзя — техническое или организационное ограничение"},
+  {id:"wont",t:"Не будем проверять",   ph:"Почему решили не проверять и кто принял это решение"}
+];
+
+/* ================= state ================= */
+
+const S={
+  pBizAs:"",pBizTo:"",pUsrAs:"",pUsrTo:"",
+  okr:[{n:"",inf:0,l:""}],
+  nowSolve:"",
+  src:{},
+  seg:[{n:"",c:"",s:0}],ctx:"",
+  met:[{n:"",a:"",b:"",l:""}],checks:[],special:null,specialWhy:"",
+  whyNow:"",devDate:"",
+  hyp:{a:"",b:"",c:"",d:""},
+  refs:{},
+  limits:"",oos:""
+};
+SRC.forEach(s=>S.src[s.id]={on:false,l:""});
+REFS.forEach(r=>S.refs[r.id]={on:false,l:"",take:""});
+
+let cur=0;
+
+const $=s=>document.querySelector(s);
+const el=(t,c,h)=>{const n=document.createElement(t);if(c)n.className=c;if(h!==undefined)n.innerHTML=h;return n;};
+const has=(a,v)=>a.indexOf(v)>-1;
+const tog=(a,v)=>{const i=a.indexOf(v);i>-1?a.splice(i,1):a.push(v);return a;};
+const esc=s=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const T=s=>(s||"").trim();
+const first=s=>{const x=T(s).split(/(?<=[.!?])\s|\n/)[0];return x||"";};
+const worst=(...v)=>v.indexOf("r")>-1?"r":(v.indexOf("a")>-1?"a":"g");
+
+/* ================= per-field states ================= */
+
+function okrState(){
+  const full=S.okr.filter(r=>T(r.n)&&T(r.l)&&r.inf>0).length;
+  const part=S.okr.filter(r=>T(r.n)).length;
+  return full?"g":(part?"a":"r");}
+function problemState(){
+  const as=[T(S.pBizAs),T(S.pUsrAs)].filter(Boolean).length;
+  const to=[T(S.pBizTo),T(S.pUsrTo)].filter(Boolean).length;
+  if(as===2&&to===2)return "g";
+  if(as||to)return "a";
+  return "r";}
+function proofState(){
+  const on=k=>SRC.filter(s=>s.k===k&&S.src[s.id].on);
+  if(on("strong").some(s=>T(S.src[s.id].l)))return "g";
+  if(on("strong").length||on("weak").length||on("opinion").length)return "a";
+  return "r";}
+function segState(){
+  const full=S.seg.filter(r=>T(r.n)&&T(r.c)&&r.s>0).length;
+  const part=S.seg.filter(r=>T(r.n)||T(r.c)||r.s>0).length;
+  return full?"g":(part?"a":"r");}
+function metricState(){
+  const full=S.met.filter(r=>T(r.n)&&T(r.a)&&T(r.b)&&T(r.l)).length;
+  const part=S.met.filter(r=>T(r.n)||T(r.a)||T(r.b)).length;
+  return full?"g":(part?"a":"r");}
+function checkState(){
+  if(S.special)return T(S.specialWhy)?"a":"r";
+  return S.checks.length>=2?"g":(S.checks.length===1?"a":"r");}
+function hypState(){
+  const v=[S.hyp.a,S.hyp.b,S.hyp.c,S.hyp.d].map(T).filter(Boolean).length;
+  return v===4?"g":(v?"a":"r");}
+function refState(){
+  const on=REFS.filter(r=>S.refs[r.id].on);
+  if(on.some(r=>T(S.refs[r.id].take)))return "g";
+  return on.length?"a":"r";}
+
+/* ================= scores (used on the last step) ================= */
+
+const MAP={g:2,a:1,r:0};
+function scoreFact(){return MAP[problemState()]+MAP[proofState()]+MAP[segState()]+MAP[metricState()]+MAP[checkState()]+MAP[hypState()];}
+function ideaList(){return [
+  {t:"Есть ответ «почему сейчас»",ok:!!T(S.whyNow)},
+  {t:"У метрики есть as is, to be и дашборд",ok:metricState()==="g"},
+  {t:"Сегмент назван, посчитан и соотнесён с продуктом",ok:segState()==="g"},
+  {t:"Посмотрели аналоги и сделали вывод",ok:refState()==="g"},
+  {t:"Зафиксировано, без чего решение бессмысленно",ok:!!T(S.limits)},
+  {t:"Гипотеза собрана целиком: если — то — потому что — тогда",ok:hypState()==="g"}];}
+function scoreIdea(){return ideaList().filter(x=>x.ok).length*2;}
+
+/* ================= inputs ================= */
+
+function txt(id,ph,area){const n=el(area?"textarea":"input");
+  if(!area)n.type="text";
+  n.placeholder=ph;n.value=S[id]||"";n.id="fld_"+id;
+  n.oninput=()=>{S[id]=n.value;refresh();};return n;}
+function field(label,node){const w=el("div","f");
+  if(label)w.appendChild(el("label","fl",label));
+  w.appendChild(node);return w;}
+function inp(ph,val,fn){const i=el("input");i.type="text";i.placeholder=ph;i.value=val||"";
+  i.oninput=()=>{fn(i.value);refresh();};return i;}
+function pick(list,val,fn){const s=el("select");
+  list.forEach((o,j)=>{const op=el("option",null,o);op.value=j;s.appendChild(op);});
+  s.value=val;s.onchange=()=>{fn(+s.value);refresh();};return s;}
+function delBtn(fn){const b=el("button","del","×");b.type="button";b.onclick=fn;return b;}
+function tbl(head,bodyId){
+  const t=el("table","t"),th=el("thead"),tr=el("tr");
+  head.forEach(h=>{const c=el("th",null,h.t||"");if(h.w)c.style.width=h.w;tr.appendChild(c);});
+  th.appendChild(tr);t.appendChild(th);
+  const tb=el("tbody");tb.id=bodyId;t.appendChild(tb);return t;}
+
+/* ================= steps ================= */
+
+const STEPS=[
+{
+  id:"problem",nav:"Проблема",title:"Проблема",
+  sub:"Что происходит сейчас и что изменится — отдельно для бизнеса и отдельно для пользователя.",
+  state:()=>worst(problemState(),T(S.nowSolve)?"g":"a"),
+  sum:()=>first(S.pUsrAs)||first(S.pBizAs),
+  miss:()=>problemState()==="r"?"не заполнено":
+    (problemState()==="a"?"заполнены не все четыре ячейки":"не описано, как решают сейчас"),
+  prac:{ok:["«Ошибся с выбором магазина и не может перевыбрать сам — идёт в поддержку и ждёт до недели». Видно, кто, что делает и чем это кончается.",
+            "Заполнены все четыре ячейки: у обеих сторон есть и «как есть», и «как станет».",
+            "В «как решают сейчас» описан обходной путь и его цена: «оператор пересоздаёт заявку вручную, от 1 до 7 дней»."],
+        no:["«Неудобный флоу подключения» — оценка вместо факта.",
+            "У бизнеса выгода расписана, а у пользователя «как станет» пусто. Значит выгоды для него, возможно, и нет.",
+            "В «как станет» написано решение («добавим кнопку»), а не состояние.",
+            "«Никак не решают» — обычно решают, просто дорого. Если не нашли как, значит не искали."]},
+  body(h){
+    const t=tbl([{t:""},{t:"Как есть"},{t:"Как станет"}],"probRows");h.appendChild(t);
+    const tb=t.querySelector("tbody");
+    [["Бизнес","pBizAs","Что происходит сейчас","pBizTo","Что изменится"],
+     ["Пользователь","pUsrAs","Что болит сейчас","pUsrTo","Как будет жить с решением"]]
+    .forEach(([lbl,k1,p1,k2,p2])=>{
+      const tr=el("tr");tr.appendChild(el("td","rh",lbl));
+      [[k1,p1],[k2,p2]].forEach(([k,p])=>{
+        const td=el("td"),ta=el("textarea");ta.placeholder=p;ta.value=S[k];ta.id="fld_"+k;
+        ta.oninput=()=>{S[k]=ta.value;refresh();};td.appendChild(ta);tr.appendChild(td);});
+      tb.appendChild(tr);});
+    const sp=el("div");sp.style.height="24px";h.appendChild(sp);
+    const al=el("div","al");
+    al.appendChild(field("Как решают проблему сейчас",txt("nowSolve","Обходные пути, ручные операции, работа поддержки и их цена",1)));
+    h.appendChild(al);}
+},
+{
+  id:"okr",nav:"OKR",title:"OKR",
+  sub:"К каким целям продукта или бизнеса относится задача и как именно на них влияет.",
+  state:okrState,
+  sum:()=>{const r=S.okr.filter(x=>T(x.n));if(!r.length)return "";
+    return T(r[0].n)+(r[0].inf>0?" · "+INFL[r[0].inf]:"")+(r.length>1?" +"+(r.length-1):"");},
+  miss:()=>okrState()==="r"?"цель не указана":"нет влияния или ссылки",
+  prac:{ok:["«Конверсия в подключение магазина, +3 п.п. к концу Q3», влияние прямое, ссылка на документ с OKR.",
+            "Если задача цепляет две цели — обе строки заполнены, у каждой своё влияние."],
+        no:["«Улучшаем онбординг» — это название задачи, а не цель.",
+            "Влияние не выбрано: значит связь с целью никто не проверял.",
+            "Ссылки нет — проверить формулировку невозможно."]},
+  body(h){
+    h.appendChild(tbl([{t:"OKR продукта или бизнеса"},{t:"Влияние",w:"22%"},{t:"Ссылка",w:"26%"},{t:"",w:"38px"}],"okrRows"));
+    const b=el("button","add","Добавить OKR");b.type="button";
+    b.onclick=()=>{S.okr.push({n:"",inf:0,l:""});drawOkr();refresh();};
+    h.appendChild(b);drawOkr();}
+},
+{
+  id:"src",nav:"Источник",title:"Источник",
+  sub:"Чем подтверждается проблема. Отметьте всё, что смотрели, и приложите значения — не только ссылку.",
+  state:proofState,
+  sum:()=>{const on=SRC.filter(s=>S.src[s.id].on);if(!on.length)return "";
+    return on.map(s=>s.n.split(",")[0].toLowerCase()).join(", ");},
+  miss:()=>proofState()==="r"?"источник не выбран":"нет сильного источника со значениями",
+  prac:{ok:["«Обращения в поддержку: 14 тикетов за июль» плюс ссылка на выгрузку.",
+            "Отмечен хотя бы один сильный источник: аналитика, интервью, тест или исследование."],
+        no:["Галочки стоят, поля пустые — проверить нечего.",
+            "Единственный отмеченный источник — мнение команды.",
+            "Ссылка есть, но без цифр: дизайнеру придётся идти в неё самому и догадываться, что там важно."]},
+  body(h){
+    h.appendChild(tbl([{t:"Чем подтверждена проблема"},{t:"Ссылка и значения оттуда",w:"56%"}],"srcRows"));
+    drawSrc();}
+},
+{
+  id:"aud",nav:"Аудитория",title:"Аудитория",
+  sub:"Кого касается проблема, сколько их и в каком контексте они с ней сталкиваются.",
+  state:()=>worst(segState(),T(S.ctx)?"g":"a"),
+  sum:()=>{const g=S.seg.find(r=>T(r.n));if(!g)return "";
+    return [T(g.n),T(g.c),g.s>0?SHARES[g.s]:""].filter(Boolean).join(" · ");},
+  miss:()=>segState()==="r"?"сегмент не назван":(segState()==="a"?"нет количества или доли":"нет контекста использования"),
+  prac:{ok:["«Новые селлеры на этапе подключения, ≈1000 в квартал, 5–10% от клиентов продукта».",
+            "Контекст: «подключает с ноутбука один раз, спешит, не перечитывает подписи к полям»."],
+        no:["«Все пользователи» — это не сегмент.",
+            "План привлечения вместо сегмента, у которого болит.",
+            "Доля не выбрана: непонятно, это край или ядро продукта.",
+            "Контекст пуст — тогда решение будет проектироваться в вакууме."]},
+  body(h){
+    h.appendChild(tbl([{t:"Сегмент"},{t:"Количество",w:"23%"},{t:"Доля продукта",w:"23%"},{t:"",w:"38px"}],"segRows"));
+    const b=el("button","add","Добавить сегмент");b.type="button";
+    b.onclick=()=>{S.seg.push({n:"",c:"",s:0});drawSeg();refresh();};
+    h.appendChild(b);drawSeg();
+    const sp=el("div");sp.style.height="22px";h.appendChild(sp);
+    h.appendChild(field("Контекст использования",txt("ctx","Устройство, момент, среда, частота, состояние",1)));}
+},
+{
+  id:"met",nav:"Метрики",title:"Метрики: as is → to be",
+  sub:"Что меняем, с какого значения на какое, где это можно увидеть и как проверим результат.",
+  state:()=>worst(metricState(),checkState()),
+  sum:()=>{const m=S.met.find(r=>T(r.n));if(!m)return "";
+    return T(m.n)+(T(m.a)&&T(m.b)?": "+T(m.a)+" → "+T(m.b):"");},
+  miss:()=>metricState()==="r"?"метрика не указана":
+    (metricState()==="a"?"нет as is, to be или дашборда":"не выбран способ проверки"),
+  prac:{ok:["«Обращения по пересозданию заявки: 10–20 в месяц → 0–2 в месяц», ссылка на дашборд поддержки.",
+            "Выбраны минимум два способа проверки — один может не сработать."],
+        no:["«Повысим конверсию» — нет текущего значения, нет цели и негде посмотреть.",
+            "To be есть, as is нет: тогда прирост посчитать нельзя.",
+            "«Не будем проверять» без объяснения — на ревью это первый вопрос."]},
+  body(h){
+    h.appendChild(tbl([{t:"Ключевая метрика"},{t:"As is",w:"15%"},{t:"To be",w:"15%"},{t:"Где смотреть",w:"26%"},{t:"",w:"38px"}],"metRows"));
+    const b=el("button","add","Добавить метрику");b.type="button";
+    b.onclick=()=>{S.met.push({n:"",a:"",b:"",l:""});drawMet();refresh();};
+    h.appendChild(b);drawMet();
+    const sp=el("div");sp.style.height="24px";h.appendChild(sp);
+    h.appendChild(el("label","fl","Как проверим успешность"));
+    const cbs=el("div","cbs");h.appendChild(cbs);
+    const why=el("div","f");why.style.marginTop="10px";why.style.display=S.special?"block":"none";
+    const wi=el("input");wi.type="text";wi.value=S.specialWhy;
+    const spNow=SPECIAL.find(x=>x.id===S.special);wi.placeholder=spNow?spNow.ph:"";
+    wi.oninput=()=>{S.specialWhy=wi.value;refresh();};why.appendChild(wi);
+    const clr=()=>{S.special=null;S.specialWhy="";wi.value="";why.style.display="none";
+      cbs.querySelectorAll("[data-sp]").forEach(x=>{x.checked=false;x.closest(".opt").classList.remove("sel");});};
+    CHECKS.forEach(c=>{
+      const l=el("label","opt"),i=el("input");i.type="checkbox";i.dataset.chk=c;i.checked=has(S.checks,c);
+      l.classList.toggle("sel",i.checked);
+      i.onchange=()=>{if(S.special)clr();tog(S.checks,c);l.classList.toggle("sel",i.checked);refresh();};
+      l.append(i,el("span",null,`<span class="t">${c}</span>`));cbs.appendChild(l);});
+    SPECIAL.forEach(sp2=>{
+      const l=el("label","opt"),i=el("input");i.type="checkbox";i.dataset.sp=sp2.id;i.checked=S.special===sp2.id;
+      l.classList.toggle("sel",i.checked);
+      i.onchange=()=>{
+        if(i.checked){S.special=sp2.id;S.checks=[];
+          cbs.querySelectorAll(".opt").forEach(o=>{if(o!==l){o.querySelector("input").checked=false;o.classList.remove("sel");}});
+          why.style.display="block";wi.placeholder=sp2.ph;
+        }else{S.special=null;S.specialWhy="";wi.value="";why.style.display="none";}
+        l.classList.toggle("sel",i.checked);refresh();};
+      l.append(i,el("span",null,`<span class="t">${sp2.t}</span>`));cbs.appendChild(l);});
+    h.appendChild(why);}
+},
+{
+  id:"why",nav:"Сроки",title:"Сроки",
+  sub:"Почему задача нужна сейчас, а не потом, и когда разработка готова к ней приступить.",
+  state:()=>worst(T(S.whyNow)?"g":"r",T(S.devDate)?"g":"a"),
+  sum:()=>{const d=T(S.devDate)?new Date(S.devDate).toLocaleDateString("ru-RU"):"";
+    return [d?"старт разработки "+d:"",first(S.whyNow)].filter(Boolean).join(" · ");},
+  miss:()=>!T(S.whyNow)?"не заполнено, почему сейчас":"нет даты старта разработки",
+  prac:{ok:["«В Q4 приходит 3–5 тысяч новых пользователей — при текущем флоу нагрузка на поддержку вырастет пропорционально».",
+            "Названа цена ожидания: деньги, люди, окно возможности или внешний срок.",
+            "Дата старта разработки взята из плана загрузки, а не назначена желаемой."],
+        no:["«Давно хотели» — это не ответ.",
+            "«Просил стейкхолдер» — это про то, кто просил, а не про то, почему сейчас.",
+            "Дата старта не указана — тогда непонятно, к какому моменту нужен дизайн.",
+            "Дата стоит раньше, чем реально возможно закончить дизайн: срок сгорит ещё до старта."]},
+  body(h){
+    h.appendChild(field("Почему сейчас, а не потом",txt("whyNow","Что изменится, если сделать это на квартал позже",1)));
+    const d=el("input");d.type="date";d.className="dt";d.value=S.devDate;d.id="fld_devDate";
+    d.oninput=()=>{S.devDate=d.value;refresh();};
+    h.appendChild(field("Когда разработка готова приступить",d));}
+},
+{
+  id:"hyp",nav:"Гипотеза",title:"Гипотеза решения",
+  sub:"Собранная формула: что делаем, как изменится поведение, почему это сработает и что будет с метрикой.",
+  state:hypState,
+  sum:()=>{const a=T(S.hyp.a),b=T(S.hyp.b);if(!a&&!b)return "";
+    return [a,b].filter(Boolean).join(" → ");},
+  miss:()=>hypState()==="r"?"гипотеза не сформулирована":"заполнены не все части",
+  prac:{ok:["«Если дать возможность перевыбрать магазин до подтверждения, то пользователь исправит ошибку сам, потому что замечает её сразу и хочет быстрее закончить подключение, тогда обращения по пересозданию упадут с 10–20 до 0–2 в месяц».",
+            "В «потому что» написана мотивация человека, а не логика системы."],
+        no:["«Если сделаем удобнее, то станет лучше» — ни воздействия, ни поведения, ни мотива.",
+            "В «то» написано изменение интерфейса, а не изменение поведения: «появится кнопка».",
+            "«Потому что» пропущено — тогда гипотезу нечем опровергнуть, она просто описывает план.",
+            "В «тогда» подставлена метрика без чисел."]},
+  body(h){
+    const w=el("div","hyp");
+    [["a","Если","воздействие, приводящее к изменению поведения субъекта"],
+     ["b","то","изменение поведения субъекта"],
+     ["c","потому что","идея, обеспечивающая срабатывание связки «если» и «то», опирающаяся на мотивацию субъекта"],
+     ["d","тогда","влияние на метрики цели"]]
+    .forEach(([k,kw,ph])=>{
+      const r=el("div","hr");
+      r.appendChild(el("div","kw",kw));
+      const ta=el("textarea");ta.placeholder=ph;ta.value=S.hyp[k];ta.id="fld_hyp_"+k;
+      ta.oninput=()=>{S.hyp[k]=ta.value;refresh();};
+      r.appendChild(ta);w.appendChild(r);});
+    h.appendChild(w);}
+},
+{
+  id:"refs",nav:"Референсы",title:"Референсы",
+  sub:"Что уже сделано другими — внутри отдела, внутри компании и на рынке. Отдельно ссылка, отдельно вывод.",
+  state:refState,
+  sum:()=>{const on=REFS.filter(r=>S.refs[r.id].on);if(!on.length)return "";
+    const take=on.map(r=>T(S.refs[r.id].take)).filter(Boolean)[0];
+    return take||on.map(r=>r.n.toLowerCase()).join(", ");},
+  miss:()=>refState()==="r"?"аналоги не смотрели":"нет вывода, что берём",
+  prac:{ok:["Ссылка на конкретный экран и отдельно вывод: «берём паттерн подтверждения до записи в базу».",
+            "Разобраны и внутренние аналоги, и внешние: внутри компании задачу часто уже решали."],
+        no:["«Смотрели Ozon» без ссылки и без вывода.",
+            "Пусто, потому что «у нас всё уникально» — это почти всегда неправда.",
+            "Ссылок много, вывода нет: тогда это не референсы, а закладки."]},
+  body(h){
+    h.appendChild(tbl([{t:"Что посмотрели"},{t:"Ссылки",w:"30%"},{t:"Что берём",w:"34%"}],"refRows"));
+    drawRefs();}
+},
+{
+  id:"limits",nav:"Границы",title:"Границы",
+  sub:"Без чего решение бессмысленно и что точно не делаем.",
+  state:()=>T(S.limits)?"g":"r",
+  sum:()=>first(S.limits),
+  miss:()=>"не зафиксировано",
+  prac:{ok:["«Без самостоятельного перевыбора магазина решение бессмысленно» — понятно, что нельзя срезать при сжатии сроков.",
+            "«Не меняем сценарий авторизации в маркетплейсе» — снимает половину будущих споров об объёме."],
+        no:["Пусто. Тогда при первом же сжатии сроков MVP урежут до бесполезного.",
+            "В «не делаем» перечислено то, чего никто и не предлагал."]},
+  body(h){
+    const g=el("div","grid2");
+    g.appendChild(field("Без чего решение бессмысленно",txt("limits","Обязательные механики",1)));
+    g.appendChild(field("Что точно не делаем",txt("oos","Out of scope",1)));
+    h.appendChild(g);}
+}
+];
+
+/* ================= readiness ================= */
+
+function openCount(){return STEPS.filter(s=>s.id!=="ready"&&s.state()!=="g").length;}
+function redCount(){return STEPS.filter(s=>s.id!=="ready"&&s.state()==="r").length;}
+
+function readiness(){
+  const f=scoreFact(),idea=scoreIdea(),open=openCount(),reds=redCount();
+  if(f<6)return {k:"r",v:"Не готово к передаче",w:"Базовой фактуры нет: дизайнер не сможет начать."};
+  if(metricState()==="r")return {k:"r",v:"Не готово к передаче",w:"Ни у одной метрики нет пары as is и to be — успех будет недоказуем."};
+  if(open>=5)return {k:"r",v:"Не готово к передаче",w:"Не закрыто "+open+" шагов из "+(STEPS.length-1)+". С такой фактурой задача не пройдёт ревью замысла."};
+  if(idea<=5)return {k:"r",v:"Не готово к передаче",w:"Замысел не обоснован: нет ответа, зачем делать задачу."};
+  if(reds>0||open>=3)return {k:"a",v:"Можно передавать с рисками",
+    w:"Пустых шагов: "+reds+", не закрыто полностью: "+open+". Дизайнер добёрет остальное вопросами, риски останутся в паспорте."};
+  if(open>0)return {k:"a",v:"Можно передавать с рисками",w:"Почти всё закрыто, осталось "+open+" неполных шага."};
+  return {k:"g",v:"Готово к передаче дизайну",w:"Цепочка обоснования целая, метрики двусторонние, аналоги разобраны."};}
+
+function rules(){
+  const f=scoreFact(),idea=scoreIdea(),open=openCount(),reds=redCount();
+  return [
+    {b:"no",  k:"Не передаём",t:"Базовой фактуры нет — проблема, источник, сегмент, метрика и гипотеза пустые или почти пустые.",on:f<6},
+    {b:"no",  k:"Не передаём",t:"Ни у одной метрики нет пары as is и to be — успех будет недоказуем.",on:metricState()==="r"},
+    {b:"no",  k:"Не передаём",t:"Не закрыто пять и больше шагов — задача не пройдёт ревью замысла.",on:open>=5},
+    {b:"no",  k:"Не передаём",t:"Нет ответа, зачем делать задачу: пусто в «почему сейчас», гипотезе, границах или аналогах.",on:idea<=5},
+    {b:"wait",k:"С рисками",  t:"Есть пустые шаги или не закрыто три-четыре — передаём, дизайнер добирает вопросами, риски остаются в паспорте.",
+      on:(reds>0||open>=3)&&f>=6&&idea>5&&open<5&&metricState()!=="r"},
+    {b:"yes", k:"Передаём",   t:"Все шаги зелёные: фактура полная, замысел обоснован.",on:open===0}];}
+
+/* ================= row drawers ================= */
+
+function drawOkr(){const tb=$("#okrRows");if(!tb)return;tb.innerHTML="";
+  S.okr.forEach((r,i)=>{const tr=el("tr");
+    tr.appendChild(el("td")).appendChild(inp("Например, конверсия в подключение",r.n,v=>r.n=v));
+    tr.appendChild(el("td")).appendChild(pick(INFL,r.inf,v=>r.inf=v));
+    tr.appendChild(el("td")).appendChild(inp("Ссылка",r.l,v=>r.l=v));
+    const td=el("td");if(S.okr.length>1)td.appendChild(delBtn(()=>{S.okr.splice(i,1);drawOkr();refresh();}));
+    tr.appendChild(td);tb.appendChild(tr);});}
+
+function drawSeg(){const tb=$("#segRows");if(!tb)return;tb.innerHTML="";
+  S.seg.forEach((r,i)=>{const tr=el("tr");
+    tr.appendChild(el("td")).appendChild(inp("Название сегмента",r.n,v=>r.n=v));
+    tr.appendChild(el("td")).appendChild(inp("Сколько человек",r.c,v=>r.c=v));
+    tr.appendChild(el("td")).appendChild(pick(SHARES,r.s,v=>r.s=v));
+    const td=el("td");if(S.seg.length>1)td.appendChild(delBtn(()=>{S.seg.splice(i,1);drawSeg();refresh();}));
+    tr.appendChild(td);tb.appendChild(tr);});}
+
+function drawMet(){const tb=$("#metRows");if(!tb)return;tb.innerHTML="";
+  S.met.forEach((r,i)=>{const tr=el("tr");
+    tr.appendChild(el("td")).appendChild(inp("Название метрики",r.n,v=>r.n=v));
+    tr.appendChild(el("td")).appendChild(inp("сейчас",r.a,v=>r.a=v));
+    tr.appendChild(el("td")).appendChild(inp("цель",r.b,v=>r.b=v));
+    tr.appendChild(el("td")).appendChild(inp("дашборд или счётчик",r.l,v=>r.l=v));
+    const td=el("td");if(S.met.length>1)td.appendChild(delBtn(()=>{S.met.splice(i,1);drawMet();refresh();}));
+    tr.appendChild(td);tb.appendChild(tr);});}
+
+function drawSrc(){const tb=$("#srcRows");if(!tb)return;tb.innerHTML="";
+  SRC.forEach(m=>{const tr=el("tr"),td1=el("td"),w=el("div","tick");
+    const c=el("input");c.type="checkbox";c.checked=S.src[m.id].on;
+    const nm=el("span","nm"+(S.src[m.id].on?"":" off"),m.n);
+    c.onchange=()=>{S.src[m.id].on=c.checked;nm.className="nm"+(c.checked?"":" off");refresh();};
+    w.append(c,nm);td1.appendChild(w);tr.appendChild(td1);
+    tr.appendChild(el("td")).appendChild(inp("Ссылка и значения оттуда",S.src[m.id].l,v=>S.src[m.id].l=v));
+    tb.appendChild(tr);});}
+
+function drawRefs(){const tb=$("#refRows");if(!tb)return;tb.innerHTML="";
+  REFS.forEach(m=>{const tr=el("tr"),td1=el("td"),w=el("div","tick");
+    const c=el("input");c.type="checkbox";c.checked=S.refs[m.id].on;
+    const nm=el("span","nm"+(S.refs[m.id].on?"":" off"),m.n);
+    c.onchange=()=>{S.refs[m.id].on=c.checked;nm.className="nm"+(c.checked?"":" off");refresh();};
+    w.append(c,nm);td1.appendChild(w);tr.appendChild(td1);
+    tr.appendChild(el("td")).appendChild(inp("Ссылки",S.refs[m.id].l,v=>S.refs[m.id].l=v));
+    tr.appendChild(el("td")).appendChild(inp("Что берём и почему",S.refs[m.id].take,v=>S.refs[m.id].take=v));
+    tb.appendChild(tr);});}
+
+/* ================= render ================= */
+
+function go(i){if(i<0||i>=STEPS.length)return;cur=i;render();window.scrollTo({top:0,behavior:"smooth"});}
+
+function render(){
+  const s=STEPS[cur];
+  $("#stepTitle").textContent=s.title;
+  $("#stepSub").textContent=s.sub;
+  const body=$("#stepBody");body.innerHTML="";
+  s.body(body);
+
+  const pr=$("#prac");
+  if(s.prac){
+    pr.style.display="grid";
+    pr.innerHTML=`<div class="pc ok"><div class="pt"><span class="ic">&#10003;</span>Правильно</div><ul>${s.prac.ok.map(x=>`<li>${x}</li>`).join("")}</ul></div>
+                  <div class="pc no"><div class="pt"><span class="ic">&#10007;</span>Неправильно</div><ul>${s.prac.no.map(x=>`<li>${x}</li>`).join("")}</ul></div>`;
+  }else{pr.style.display="none";pr.innerHTML="";}
+
+  $("#prev").style.visibility=cur===0?"hidden":"visible";
+  $("#next").style.display=cur===STEPS.length-1?"none":"inline-block";
+  refresh();}
+
+function refresh(){
+  const h=$("#sideNav");h.innerHTML="";
+  STEPS.forEach((s,i)=>{
+    const st=s.state();
+    const row=el("div","nv "+st+(i===cur?" cur":""));
+    row.appendChild(el("div","ic",st==="g"?"&#10003;":(st==="a"?"!":"")));
+    const bd=el("div","bd");
+    bd.appendChild(el("div","nm",s.nav));
+    const v=s.sum();
+    if(st==="g"&&v)bd.appendChild(el("div","vl",esc(v)));
+    else if(v&&s.id!=="ready")bd.appendChild(el("div","vl warn",esc(v)));
+    else bd.appendChild(el("div","vl miss",esc(s.miss())));
+    row.appendChild(bd);
+    row.onclick=()=>go(i);
+    h.appendChild(row);});
+
+  const r=readiness();
+  $("#status").className="status "+r.k;
+  $("#statusVal").textContent=r.v;
+}
+
+/* ================= demo ================= */
+
+function demo(){
+  S.pBizAs="Тратим ресурс разработки и поддержки на переназначение магазина после ошибки пользователя: 10–20 обращений в месяц.";
+  S.pBizTo="Пользователь исправляет всё сам, обращения не доходят до поддержки.";
+  S.pUsrAs="Ошибся с выбором магазина и не может перевыбрать — идёт в поддержку и ждёт до недели.";
+  S.pUsrTo="Меняет выбор сам, подключение занимает один день.";
+  S.okr=[{n:"Обработка проблемных сценариев",inf:1,l:"wiki/okr-q3"},
+         {n:"Повышение конверсии в подключение",inf:2,l:"wiki/okr-conv"}];
+  S.nowSolve="Пишет в поддержку, оператор пересоздаёт заявку вручную. Занимает от 1 до 7 дней, в это время партнёр не может торговать.";
+  S.src.sup={on:true,l:"14 тикетов за июль, выгрузка dash/tickets"};
+  S.src.an={on:true,l:"Воронка подключения: 8% отвалов на шаге выбора магазина"};
+  S.seg=[{n:"Новые селлеры на подключении",c:"≈1000 в Q3",s:3}];
+  S.ctx="Подключаю магазин с ноутбука один раз, в начале работы с сервисом, спешу и не перечитываю подписи к полям.";
+  S.met=[{n:"Обращения по пересозданию заявки",a:"10–20 в месяц",b:"0–2 в месяц",l:"dash/support-tickets"},
+         {n:"Скорость подключения",a:"1–7 дней",b:"1–2 дня",l:"dash/onboarding"}];
+  S.checks=["Сравнение метрики до и после","Счётчик использования"];S.special=null;S.specialWhy="";
+  S.devDate="2026-09-01";
+  S.whyNow="До конца года цель 3–5 тысяч новых пользователей — при текущем флоу нагрузка на поддержку вырастет пропорционально.";
+  S.hyp={a:"дать возможность перевыбрать магазин до подтверждения заявки",
+    b:"пользователь исправляет ошибку сам, не обращаясь в поддержку",
+    c:"он замечает ошибку сразу и хочет быстрее закончить подключение, а не ждать оператора",
+    d:"обращения по пересозданию упадут с 10–20 до 0–2 в месяц, скорость подключения — с 1–7 до 1–2 дней"};
+  S.refs.r2={on:true,l:"figma/tbusiness-onboarding",take:"Паттерн подтверждения до записи в базу"};
+  S.refs.r3={on:true,l:"Ozon Seller, WB Partner",take:"Перевыбор магазина доступен до подтверждения"};
+  S.limits="Без самостоятельного перевыбора магазина решение бессмысленно: если исправление всё равно идёт через поддержку, костов мы не снимаем.";
+  S.oos="Не меняем сценарий авторизации в маркетплейсе.";
+  render();}
+
+function openModal(){
+  const r=readiness();
+  $("#mdTitle").textContent=r.v;
+  $("#mdWhy").textContent=r.w;
+
+  const open=STEPS.filter(s=>s.state()!=="g");
+  const box=$("#mdOpen");box.innerHTML="";
+  const sect=el("div","sect");
+  sect.appendChild(el("h4",null,"Что дизайнер спросит первым"));
+  if(open.length){
+    const ul=el("ul","rules");
+    open.forEach(s=>{
+      const li=el("li","jump");
+      li.appendChild(el("span","rb "+(s.state()==="r"?"nt":"wait"),s.nav));
+      li.appendChild(el("span",null,esc(s.miss())));
+      li.onclick=()=>{closeModal();go(STEPS.indexOf(s));};
+      ul.appendChild(li);});
+    sect.appendChild(ul);
+  }else sect.appendChild(el("div","hint","Ничего — фактура закрыта полностью."));
+  box.appendChild(sect);
+
+  const ul2=$("#mdRules");ul2.innerHTML="";
+  rules().forEach(x=>{
+    const li=el("li",x.on?"active":"");
+    li.appendChild(el("span","rb "+x.b,x.k));
+    li.appendChild(el("span",null,x.t));
+    ul2.appendChild(li);});
+
+  $("#ov").classList.add("on");}
+function closeModal(){$("#ov").classList.remove("on");}
+
+$("#whyBtn").onclick=openModal;
+$("#mdClose").onclick=closeModal;
+$("#ov").onclick=e=>{if(e.target===$("#ov"))closeModal();};
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
+function showSent(){
+  const r=readiness();
+  const bd=$("#sentBadge");
+  bd.className="badge "+r.k;
+  bd.textContent="Отправлено со статусом: "+r.v.toLowerCase();
+  $("#formCols").style.display="none";
+  document.querySelector("header.top").style.display="none";
+  $("#sent").classList.add("on");
+  window.scrollTo({top:0,behavior:"instant"});}
+
+$("#send").onclick=showSent;
+$("#sentBack").onclick=()=>location.reload();
+
+$("#demo").onclick=demo;
+$("#reset").onclick=()=>location.reload();
+$("#prev").onclick=()=>go(cur-1);
+$("#next").onclick=()=>{if(cur<STEPS.length-1)go(cur+1);};
+
+render();
+</script>
+</body>
+</html>
