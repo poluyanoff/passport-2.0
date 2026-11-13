@@ -98,6 +98,7 @@ table.t td.rh{font-size:13px;font-weight:700;padding-top:10px;white-space:nowrap
 /* ---------- side navigation ---------- */
 .panel{position:sticky;top:58px}
 .card{border:1px solid var(--line);border-radius:var(--r);padding:8px;background:#fff}
+.grp{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);padding:10px 9px 4px}
 .nv{display:flex;gap:10px;padding:8px 9px;border-radius:9px;cursor:pointer}
 .nv:hover{background:var(--surface)}
 .nv.cur{background:var(--surface)}
@@ -312,7 +313,7 @@ const S={
   whyNow:"",devDate:"",
   hyp:{a:"",b:"",c:"",d:""},
   refs:{},
-  limits:"",oos:""
+  limits:"",oos:"",title:""
 };
 SRC.forEach(s=>S.src[s.id]={on:false,l:""});
 REFS.forEach(r=>S.refs[r.id]={on:false,l:"",take:""});
@@ -364,19 +365,6 @@ function refState(){
   if(on.some(r=>T(S.refs[r.id].take)))return "g";
   return on.length?"a":"r";}
 
-/* ================= scores (used on the last step) ================= */
-
-const MAP={g:2,a:1,r:0};
-function scoreFact(){return MAP[problemState()]+MAP[proofState()]+MAP[segState()]+MAP[metricState()]+MAP[checkState()]+MAP[hypState()];}
-function ideaList(){return [
-  {t:"Есть ответ «почему сейчас»",ok:!!T(S.whyNow)},
-  {t:"У метрики есть as is, to be и дашборд",ok:metricState()==="g"},
-  {t:"Сегмент назван, посчитан и соотнесён с продуктом",ok:segState()==="g"},
-  {t:"Посмотрели аналоги и сделали вывод",ok:refState()==="g"},
-  {t:"Зафиксировано, без чего решение бессмысленно",ok:!!T(S.limits)},
-  {t:"Гипотеза собрана целиком: если — то — потому что — тогда",ok:hypState()==="g"}];}
-function scoreIdea(){return ideaList().filter(x=>x.ok).length*2;}
-
 /* ================= inputs ================= */
 
 function txt(id,ph,area){const n=el(area?"textarea":"input");
@@ -401,6 +389,18 @@ function tbl(head,bodyId){
 /* ================= steps ================= */
 
 const STEPS=[
+{
+  id:"title",group:"Обязательно",nav:"Название",title:"Название задачи",
+  sub:"Коротко: что делаем. По названию задачу будут искать в Jira и в очереди дизайна.",
+  state:()=>T(S.title)?"g":"r",
+  sum:()=>T(S.title),
+  miss:()=>"не заполнено",
+  prac:{ok:["«Перевыбор магазина при подключении» — понятно, что и где меняем.",
+            "Название описывает результат для пользователя, а не способ реализации."],
+        no:["«Доработка онбординга» — подойдёт к любой задаче.",
+            "«Фича от Анны» — по названию не понять, о чём задача."]},
+  body(h){h.appendChild(field("Название задачи",txt("title","Что делаем, одной строкой")));}
+},
 {
   id:"problem",nav:"Проблема",title:"Проблема",
   sub:"Что происходит сейчас и что изменится — отдельно для бизнеса и отдельно для пользователя.",
@@ -432,24 +432,6 @@ const STEPS=[
     h.appendChild(al);}
 },
 {
-  id:"okr",nav:"OKR",title:"OKR",
-  sub:"К каким целям продукта или бизнеса относится задача и как именно на них влияет.",
-  state:okrState,
-  sum:()=>{const r=S.okr.filter(x=>T(x.n));if(!r.length)return "";
-    return T(r[0].n)+(r[0].inf>0?" · "+INFL[r[0].inf]:"")+(r.length>1?" +"+(r.length-1):"");},
-  miss:()=>okrState()==="r"?"цель не указана":"нет влияния или ссылки",
-  prac:{ok:["«Конверсия в подключение магазина, +3 п.п. к концу Q3», влияние прямое, ссылка на документ с OKR.",
-            "Если задача цепляет две цели — обе строки заполнены, у каждой своё влияние."],
-        no:["«Улучшаем онбординг» — это название задачи, а не цель.",
-            "Влияние не выбрано: значит связь с целью никто не проверял.",
-            "Ссылки нет — проверить формулировку невозможно."]},
-  body(h){
-    h.appendChild(tbl([{t:"OKR продукта или бизнеса"},{t:"Влияние",w:"22%"},{t:"Ссылка",w:"26%"},{t:"",w:"38px"}],"okrRows"));
-    const b=el("button","add","Добавить OKR");b.type="button";
-    b.onclick=()=>{S.okr.push({n:"",inf:0,l:""});drawOkr();refresh();};
-    h.appendChild(b);drawOkr();}
-},
-{
   id:"src",nav:"Источник",title:"Источник",
   sub:"Чем подтверждается проблема. Отметьте всё, что смотрели, и приложите значения — не только ссылку.",
   state:proofState,
@@ -464,27 +446,6 @@ const STEPS=[
   body(h){
     h.appendChild(tbl([{t:"Чем подтверждена проблема"},{t:"Ссылка и значения оттуда",w:"56%"}],"srcRows"));
     drawSrc();}
-},
-{
-  id:"aud",nav:"Аудитория",title:"Аудитория",
-  sub:"Кого касается проблема, сколько их и в каком контексте они с ней сталкиваются.",
-  state:()=>worst(segState(),T(S.ctx)?"g":"a"),
-  sum:()=>{const g=S.seg.find(r=>T(r.n));if(!g)return "";
-    return [T(g.n),T(g.c),g.s>0?SHARES[g.s]:""].filter(Boolean).join(" · ");},
-  miss:()=>segState()==="r"?"сегмент не назван":(segState()==="a"?"нет количества или доли":"нет контекста использования"),
-  prac:{ok:["«Новые селлеры на этапе подключения, ≈1000 в квартал, 5–10% от клиентов продукта».",
-            "Контекст: «подключает с ноутбука один раз, спешит, не перечитывает подписи к полям»."],
-        no:["«Все пользователи» — это не сегмент.",
-            "План привлечения вместо сегмента, у которого болит.",
-            "Доля не выбрана: непонятно, это край или ядро продукта.",
-            "Контекст пуст — тогда решение будет проектироваться в вакууме."]},
-  body(h){
-    h.appendChild(tbl([{t:"Сегмент"},{t:"Количество",w:"23%"},{t:"Доля продукта",w:"23%"},{t:"",w:"38px"}],"segRows"));
-    const b=el("button","add","Добавить сегмент");b.type="button";
-    b.onclick=()=>{S.seg.push({n:"",c:"",s:0});drawSeg();refresh();};
-    h.appendChild(b);drawSeg();
-    const sp=el("div");sp.style.height="22px";h.appendChild(sp);
-    h.appendChild(field("Контекст использования",txt("ctx","Устройство, момент, среда, частота, состояние",1)));}
 },
 {
   id:"met",nav:"Метрики",title:"Метрики: as is → to be",
@@ -531,6 +492,27 @@ const STEPS=[
     h.appendChild(why);}
 },
 {
+  id:"aud",nav:"Аудитория",title:"Аудитория",
+  sub:"Кого касается проблема, сколько их и в каком контексте они с ней сталкиваются.",
+  state:()=>worst(segState(),T(S.ctx)?"g":"a"),
+  sum:()=>{const g=S.seg.find(r=>T(r.n));if(!g)return "";
+    return [T(g.n),T(g.c),g.s>0?SHARES[g.s]:""].filter(Boolean).join(" · ");},
+  miss:()=>segState()==="r"?"сегмент не назван":(segState()==="a"?"нет количества или доли":"нет контекста использования"),
+  prac:{ok:["«Новые селлеры на этапе подключения, ≈1000 в квартал, 5–10% от клиентов продукта».",
+            "Контекст: «подключает с ноутбука один раз, спешит, не перечитывает подписи к полям»."],
+        no:["«Все пользователи» — это не сегмент.",
+            "План привлечения вместо сегмента, у которого болит.",
+            "Доля не выбрана: непонятно, это край или ядро продукта.",
+            "Контекст пуст — тогда решение будет проектироваться в вакууме."]},
+  body(h){
+    h.appendChild(tbl([{t:"Сегмент"},{t:"Количество",w:"23%"},{t:"Доля продукта",w:"23%"},{t:"",w:"38px"}],"segRows"));
+    const b=el("button","add","Добавить сегмент");b.type="button";
+    b.onclick=()=>{S.seg.push({n:"",c:"",s:0});drawSeg();refresh();};
+    h.appendChild(b);drawSeg();
+    const sp=el("div");sp.style.height="22px";h.appendChild(sp);
+    h.appendChild(field("Контекст использования",txt("ctx","Устройство, момент, среда, частота, состояние",1)));}
+},
+{
   id:"why",nav:"Сроки",title:"Сроки",
   sub:"Почему задача нужна сейчас, а не потом, и когда разработка готова к ней приступить.",
   state:()=>worst(T(S.whyNow)?"g":"r",T(S.devDate)?"g":"a"),
@@ -549,6 +531,23 @@ const STEPS=[
     const d=el("input");d.type="date";d.className="dt";d.value=S.devDate;d.id="fld_devDate";
     d.oninput=()=>{S.devDate=d.value;refresh();};
     h.appendChild(field("Когда разработка готова приступить",d));}
+},
+{
+  id:"refs",group:"Можно добавить позже",nav:"Референсы",title:"Референсы",
+  sub:"Что уже сделано другими — внутри отдела, внутри компании и на рынке. Отдельно ссылка, отдельно вывод.",
+  state:refState,
+  sum:()=>{const on=REFS.filter(r=>S.refs[r.id].on);if(!on.length)return "";
+    const take=on.map(r=>T(S.refs[r.id].take)).filter(Boolean)[0];
+    return take||on.map(r=>r.n.toLowerCase()).join(", ");},
+  miss:()=>refState()==="r"?"аналоги не смотрели":"нет вывода, что берём",
+  prac:{ok:["Ссылка на конкретный экран и отдельно вывод: «берём паттерн подтверждения до записи в базу».",
+            "Разобраны и внутренние аналоги, и внешние: внутри компании задачу часто уже решали."],
+        no:["«Смотрели Ozon» без ссылки и без вывода.",
+            "Пусто, потому что «у нас всё уникально» — это почти всегда неправда.",
+            "Ссылок много, вывода нет: тогда это не референсы, а закладки."]},
+  body(h){
+    h.appendChild(tbl([{t:"Что посмотрели"},{t:"Ссылки",w:"30%"},{t:"Что берём",w:"34%"}],"refRows"));
+    drawRefs();}
 },
 {
   id:"hyp",nav:"Гипотеза",title:"Гипотеза решения",
@@ -578,21 +577,22 @@ const STEPS=[
     h.appendChild(w);}
 },
 {
-  id:"refs",nav:"Референсы",title:"Референсы",
-  sub:"Что уже сделано другими — внутри отдела, внутри компании и на рынке. Отдельно ссылка, отдельно вывод.",
-  state:refState,
-  sum:()=>{const on=REFS.filter(r=>S.refs[r.id].on);if(!on.length)return "";
-    const take=on.map(r=>T(S.refs[r.id].take)).filter(Boolean)[0];
-    return take||on.map(r=>r.n.toLowerCase()).join(", ");},
-  miss:()=>refState()==="r"?"аналоги не смотрели":"нет вывода, что берём",
-  prac:{ok:["Ссылка на конкретный экран и отдельно вывод: «берём паттерн подтверждения до записи в базу».",
-            "Разобраны и внутренние аналоги, и внешние: внутри компании задачу часто уже решали."],
-        no:["«Смотрели Ozon» без ссылки и без вывода.",
-            "Пусто, потому что «у нас всё уникально» — это почти всегда неправда.",
-            "Ссылок много, вывода нет: тогда это не референсы, а закладки."]},
+  id:"okr",nav:"OKR",title:"OKR",
+  sub:"К каким целям продукта или бизнеса относится задача и как именно на них влияет.",
+  state:okrState,
+  sum:()=>{const r=S.okr.filter(x=>T(x.n));if(!r.length)return "";
+    return T(r[0].n)+(r[0].inf>0?" · "+INFL[r[0].inf]:"")+(r.length>1?" +"+(r.length-1):"");},
+  miss:()=>okrState()==="r"?"цель не указана":"нет влияния или ссылки",
+  prac:{ok:["«Конверсия в подключение магазина, +3 п.п. к концу Q3», влияние прямое, ссылка на документ с OKR.",
+            "Если задача цепляет две цели — обе строки заполнены, у каждой своё влияние."],
+        no:["«Улучшаем онбординг» — это название задачи, а не цель.",
+            "Влияние не выбрано: значит связь с целью никто не проверял.",
+            "Ссылки нет — проверить формулировку невозможно."]},
   body(h){
-    h.appendChild(tbl([{t:"Что посмотрели"},{t:"Ссылки",w:"30%"},{t:"Что берём",w:"34%"}],"refRows"));
-    drawRefs();}
+    h.appendChild(tbl([{t:"OKR продукта или бизнеса"},{t:"Влияние",w:"22%"},{t:"Ссылка",w:"26%"},{t:"",w:"38px"}],"okrRows"));
+    const b=el("button","add","Добавить OKR");b.type="button";
+    b.onclick=()=>{S.okr.push({n:"",inf:0,l:""});drawOkr();refresh();};
+    h.appendChild(b);drawOkr();}
 },
 {
   id:"limits",nav:"Границы",title:"Границы",
@@ -612,32 +612,31 @@ const STEPS=[
 }
 ];
 
-/* ================= readiness ================= */
+/* ================= readiness: смотрит только на обязательные шаги ================= */
 
-function openCount(){return STEPS.filter(s=>s.id!=="ready"&&s.state()!=="g").length;}
-function redCount(){return STEPS.filter(s=>s.id!=="ready"&&s.state()==="r").length;}
+const OPTIONAL=["refs","hyp","okr","limits"];
+const isReq=s=>OPTIONAL.indexOf(s.id)<0;
+const reqSteps=()=>STEPS.filter(isReq);
+const optSteps=()=>STEPS.filter(s=>!isReq(s));
+const reqRed=()=>reqSteps().filter(s=>s.state()==="r");
+const reqOpen=()=>reqSteps().filter(s=>s.state()!=="g");
+const optOpen=()=>optSteps().filter(s=>s.state()!=="g");
 
 function readiness(){
-  const f=scoreFact(),idea=scoreIdea(),open=openCount(),reds=redCount();
-  if(f<6)return {k:"r",v:"Не готово к передаче",w:"Базовой фактуры нет: дизайнер не сможет начать."};
-  if(metricState()==="r")return {k:"r",v:"Не готово к передаче",w:"Ни у одной метрики нет пары as is и to be — успех будет недоказуем."};
-  if(open>=5)return {k:"r",v:"Не готово к передаче",w:"Не закрыто "+open+" шагов из "+(STEPS.length-1)+". С такой фактурой задача не пройдёт ревью замысла."};
-  if(idea<=5)return {k:"r",v:"Не готово к передаче",w:"Замысел не обоснован: нет ответа, зачем делать задачу."};
-  if(reds>0||open>=3)return {k:"a",v:"Можно передавать с рисками",
-    w:"Пустых шагов: "+reds+", не закрыто полностью: "+open+". Дизайнер добёрет остальное вопросами, риски останутся в паспорте."};
-  if(open>0)return {k:"a",v:"Можно передавать с рисками",w:"Почти всё закрыто, осталось "+open+" неполных шага."};
-  return {k:"g",v:"Готово к передаче дизайну",w:"Цепочка обоснования целая, метрики двусторонние, аналоги разобраны."};}
+  const red=reqRed(),open=reqOpen(),opt=optOpen();
+  if(red.length)return {k:"r",v:"Не готово к передаче",
+    w:"Пустых обязательных шагов: "+red.length+" ("+red.map(s=>s.nav.toLowerCase()).join(", ")+"). Без них дизайнер не сможет начать."};
+  if(open.length)return {k:"a",v:"Можно передавать с рисками",
+    w:"Обязательные шаги заполнены, но не до конца: "+open.map(s=>s.nav.toLowerCase()).join(", ")+". Дизайнер добёрет это вопросами, риски останутся в паспорте."};
+  return {k:"g",v:"Готово к передаче дизайну",
+    w:opt.length?"Обязательное закрыто полностью. Можно усилить: "+opt.map(s=>s.nav.toLowerCase()).join(", ")+".":"Всё закрыто полностью."};}
 
 function rules(){
-  const f=scoreFact(),idea=scoreIdea(),open=openCount(),reds=redCount();
+  const red=reqRed(),open=reqOpen();
   return [
-    {b:"no",  k:"Не передаём",t:"Базовой фактуры нет — проблема, источник, сегмент, метрика и гипотеза пустые или почти пустые.",on:f<6},
-    {b:"no",  k:"Не передаём",t:"Ни у одной метрики нет пары as is и to be — успех будет недоказуем.",on:metricState()==="r"},
-    {b:"no",  k:"Не передаём",t:"Не закрыто пять и больше шагов — задача не пройдёт ревью замысла.",on:open>=5},
-    {b:"no",  k:"Не передаём",t:"Нет ответа, зачем делать задачу: пусто в «почему сейчас», гипотезе, границах или аналогах.",on:idea<=5},
-    {b:"wait",k:"С рисками",  t:"Есть пустые шаги или не закрыто три-четыре — передаём, дизайнер добирает вопросами, риски остаются в паспорте.",
-      on:(reds>0||open>=3)&&f>=6&&idea>5&&open<5&&metricState()!=="r"},
-    {b:"yes", k:"Передаём",   t:"Все шаги зелёные: фактура полная, замысел обоснован.",on:open===0}];}
+    {b:"no",  k:"Не передаём",t:"Хотя бы один обязательный шаг пустой: название, проблема, источник, метрики, аудитория или сроки.",on:red.length>0},
+    {b:"wait",k:"С рисками",  t:"Обязательные шаги не пустые, но заполнены не до конца — дизайнер добирает вопросами, риски остаются в паспорте.",on:!red.length&&open.length>0},
+    {b:"yes", k:"Передаём",   t:"Все обязательные шаги зелёные. Референсы, гипотеза, OKR и границы на статус не влияют, но их отсутствие попадёт в паспорт как пробел.",on:!open.length}];}
 
 /* ================= row drawers ================= */
 
@@ -711,6 +710,7 @@ function refresh(){
   const h=$("#sideNav");h.innerHTML="";
   STEPS.forEach((s,i)=>{
     const st=s.state();
+    if(s.group)h.appendChild(el("div","grp",s.group));
     const row=el("div","nv "+st+(i===cur?" cur":""));
     row.appendChild(el("div","ic",st==="g"?"&#10003;":(st==="a"?"!":"")));
     const bd=el("div","bd");
@@ -731,6 +731,7 @@ function refresh(){
 /* ================= demo ================= */
 
 function demo(){
+  S.title="Перевыбор магазина при подключении";
   S.pBizAs="Тратим ресурс разработки и поддержки на переназначение магазина после ошибки пользователя: 10–20 обращений в месяц.";
   S.pBizTo="Пользователь исправляет всё сам, обращения не доходят до поддержки.";
   S.pUsrAs="Ошибся с выбором магазина и не может перевыбрать — идёт в поддержку и ждёт до недели.";
@@ -762,21 +763,23 @@ function openModal(){
   $("#mdTitle").textContent=r.v;
   $("#mdWhy").textContent=r.w;
 
-  const open=STEPS.filter(s=>s.state()!=="g");
   const box=$("#mdOpen");box.innerHTML="";
-  const sect=el("div","sect");
-  sect.appendChild(el("h4",null,"Что дизайнер спросит первым"));
-  if(open.length){
-    const ul=el("ul","rules");
-    open.forEach(s=>{
-      const li=el("li","jump");
-      li.appendChild(el("span","rb "+(s.state()==="r"?"nt":"wait"),s.nav));
-      li.appendChild(el("span",null,esc(s.miss())));
-      li.onclick=()=>{closeModal();go(STEPS.indexOf(s));};
-      ul.appendChild(li);});
-    sect.appendChild(ul);
-  }else sect.appendChild(el("div","hint","Ничего — фактура закрыта полностью."));
-  box.appendChild(sect);
+  const block=(title,list,empty)=>{
+    const sect=el("div","sect");
+    sect.appendChild(el("h4",null,title));
+    if(list.length){
+      const ul=el("ul","rules");
+      list.forEach(s=>{
+        const li=el("li","jump");
+        li.appendChild(el("span","rb "+(s.state()==="r"?"nt":"wait"),s.nav));
+        li.appendChild(el("span",null,esc(s.miss())));
+        li.onclick=()=>{closeModal();go(STEPS.indexOf(s));};
+        ul.appendChild(li);});
+      sect.appendChild(ul);
+    }else sect.appendChild(el("div","hint",empty));
+    box.appendChild(sect);};
+  block("Что дизайнер спросит первым",reqOpen(),"Ничего — обязательное закрыто полностью.");
+  block("Можно усилить",optOpen(),"Необязательные шаги заполнены.");
 
   const ul2=$("#mdRules");ul2.innerHTML="";
   rules().forEach(x=>{
