@@ -30,7 +30,8 @@ interface Model {
     pUsrTo: string;
     nowSolve: string;
     src: Record<string, {on: boolean; out: string; l: string}>;
-    seg: {n: string; c: string; s: string};
+    srcLinks: string;
+    seg: Array<{n: string; c: string; s: string}>;
     ctx: string;
     met: Array<{n: string; a: string; b: string; l: string}>;
     checks: string[];
@@ -54,7 +55,8 @@ function empty(): Model {
         pUsrTo: '',
         nowSolve: '',
         src: Object.fromEntries(SRC.map(s => [s.id, {on: false, out: '', l: ''}])),
-        seg: {n: '', c: '', s: ''},
+        srcLinks: '',
+        seg: [{n: '', c: '', s: ''}],
         ctx: '',
         met: [{n: '', a: '', b: '', l: ''}],
         checks: [],
@@ -217,8 +219,8 @@ export class AppComponent implements OnInit {
             return 'Отметьте хотя бы один источник';
         }
 
-        if (this.step.id === 'business' && !this.hasBiz()) {
-            return 'Отметьте, на что влияет задача в бизнесе';
+        if (this.step.id === 'business' && (!T(s.pBizAs) || !T(s.pBizTo))) {
+            return 'Опишите, что теряет бизнес сейчас и что изменится после решения';
         }
 
         return '';
@@ -247,6 +249,10 @@ export class AppComponent implements OnInit {
         this.s = empty();
         this.sent.set(false);
         this.go(0);
+    }
+
+    protected addSeg(): void {
+        this.s.seg.push({n: '', c: '', s: ''});
     }
 
     protected addMet(): void {
@@ -314,9 +320,8 @@ export class AppComponent implements OnInit {
     }
 
     private segState(): St {
-        const r = this.s.seg;
-        const full = T(r.n) && T(r.c) && r.s;
-        const part = T(r.n) || T(r.c) || r.s;
+        const full = this.s.seg.filter(r => T(r.n) && T(r.c) && r.s).length;
+        const part = this.s.seg.filter(r => T(r.n) || T(r.c) || r.s).length;
 
         return full ? 'g' : part ? 'a' : 'r';
     }
@@ -529,7 +534,8 @@ export class AppComponent implements OnInit {
                 sup: {on: true, out: '14 обращений за июль, все про перевыбор магазина', l: 'dash/tickets'},
                 an: {on: true, out: 'Воронка подключения: 8% отвалов на шаге выбора магазина', l: 'dash/funnel'},
             },
-            seg: {n: 'Новые селлеры на подключении', c: '≈1000 в Q3', s: '5–10%'},
+            srcLinks: 'dash/tickets · dash/funnel',
+            seg: [{n: 'Новые селлеры на подключении', c: '≈1000 в Q3', s: '5–10%'}],
             ctx: 'Подключаю магазин с ноутбука один раз, в начале работы с сервисом, спешу и не перечитываю подписи к полям.',
             met: [
                 {n: 'Обращения по пересозданию заявки', a: '10–20 в месяц', b: '0–2 в месяц', l: 'dash/support-tickets'},

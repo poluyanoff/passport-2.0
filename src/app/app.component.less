@@ -521,6 +521,34 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.guide-seg-block {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.guide-seg-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.guide-metric-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 3fr 1fr 1fr;
+    gap: 12px;
+}
+
+.guide-metric-link {
+    width: 100%;
+}
+
+.guide-date {
+    width: 30%;
+}
+
 .guide-add {
     display: flex;
     align-items: center;
@@ -560,7 +588,7 @@
    tuiTextarea сам тянет под ghost-строку; здесь задаём минимальную
    высоту так, чтобы вторая строка помещалась целиком. */
 .guide-hyp-fields tui-textfield textarea {
-    min-height: 3.25rem;
+    min-height: 4.75rem;
 }
 
 .guide-add:hover .guide-add-icon {
