@@ -1,0 +1,39 @@
+@import '@taiga-ui/styles/taiga-ui-global.less';
+@import '@taiga-ui/core/styles/taiga-ui-theme.less';
+@import '@taiga-ui/proprietary/styles/tbank-fonts.less';
+@import '@taiga-ui/proprietary/styles/tbank-theme.less';
+
+html, body {
+    background: var(--tui-background-base);
+    color: var(--tui-text-primary);
+    font: var(--tui-font-text-m);
+}
+
+/* Ориджинейшн, шаг «Пользователь»: app bar по макету 64 / контент 720.
+   Переопределение глобальное и с усиленной специфичностью: стили tui-app-bar
+   инкапсулированы, а его родное правило [tuiAppBarV] > .t-content сильнее классового. */
+tui-app-bar.guide-bar > .t-content {
+    position: static;
+    inset-inline-start: auto;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    block-size: 100%;
+    padding: 0;
+    transform: none;
+}
+
+/* Шаги гайда: переход на заполненный шаг не сопровождается анимациями полей.
+   Внутри tui-textfield анимируются ghost-текст, подсветка и рамка (0.15s через --tui-duration),
+   из-за этого текст «приземляется» в поле. Обнуляем длительность внутри формы гайда. */
+.guide-form {
+    --tui-duration: 0s;
+}
+
+.guide-form tui-textfield,
+.guide-form tui-textfield *,
+.guide-form textarea[tuiTextarea],
+.guide-form .t-ghost,
+.guide-form .t-hack {
+    transition: none;
+    animation: none;
+}

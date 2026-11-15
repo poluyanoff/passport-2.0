@@ -1,0 +1,334 @@
+<tui-root>
+    @if (sent()) {
+        <div class="sent">
+            <header tuiHeader="h3">
+                <h1 tuiTitle>
+                    Паспорт отправлен дизайнеру
+                    <span tuiSubtitle>Дизайнер оценит задачу и вернется с уточнениями до ближайшего планирования</span>
+                </h1>
+            </header>
+            <tui-notification [appearance]="readiness().appearance">Отправлено со статусом: {{ done() }}</tui-notification>
+            <div tuiCardLarge appearance="outline">
+                <header tuiHeader><h2 tuiTitle>С чем дизайнер может вернуться</h2></header>
+                <div tuiCell>
+                    <tui-icon icon="@tui.circle-check" class="ok" />
+                    <span tuiTitle>
+                        Берем в работу
+                        <span tuiSubtitle>Фактуры достаточно: дизайнер называет размер и срок, вы получаете вилку в рабочих днях и дату готовности макетов</span>
+                    </span>
+                </div>
+                <div tuiCell>
+                    <tui-icon icon="@tui.circle-help" class="mid" />
+                    <span tuiTitle>
+                        Вернется с уточнениями
+                        <span tuiSubtitle>Чего-то не хватает, но задача рабочая: вопросы придут списком по конкретным шагам паспорта</span>
+                    </span>
+                </div>
+                <div tuiCell>
+                    <tui-icon icon="@tui.circle-x" class="bad" />
+                    <span tuiTitle>
+                        Отказ с обоснованием
+                        <span tuiSubtitle>Непонятно, зачем делать задачу, или проблема несоизмерима с ценой решения. В отказе будет сказано, что изменить</span>
+                    </span>
+                </div>
+            </div>
+            <div>
+                <button tuiButton type="button" (click)="reset()">Заполнить заново</button>
+            </div>
+        </div>
+    } @else {
+        @if (isGuide(step.id)) {
+            <div class="guide">
+                <div class="guide-top">
+                    <tui-app-bar size="l" class="guide-bar">
+                        <div class="guide-row">
+                            <div class="guide-col">
+                                @if (cur() > 0) {
+                                    <button
+                                        tuiButton
+                                        appearance="link"
+                                        size="m"
+                                        type="button"
+                                        class="guide-back"
+                                        (click)="go(cur() - 1)"
+                                    >
+                                        <tui-icon icon="@tui.chevron-left" class="guide-back-icon" />
+                                        Назад
+                                    </button>
+                                }
+                            </div>
+                            <div class="guide-col guide-col-middle">
+                                <progress tuiProgressBar size="s" max="140" [value]="progress()"></progress>
+                            </div>
+                            <div class="guide-col"></div>
+                        </div>
+                    </tui-app-bar>
+                </div>
+
+                <main class="guide-inner">
+                    <div class="guide-steps" #stepsEl>
+                    <div class="guide-step" [attr.data-phase]="phase()">
+                    <header tuiHeader="h3" class="guide-head">
+                        <h1 tuiTitle>{{ step.title }}</h1>
+                        <p class="guide-desc">{{ step.sub }}</p>
+                    </header>
+
+                    <div class="guide-form" tuiForm="m">
+                        @if (step.id === 'problem') {
+                            <div class="guide-stack">
+                                <h3 tuiTitle>Аудитория</h3>
+                                <div class="guide-rows">
+                                    @for (r of s.seg; track $index) {
+                                        <div class="guide-row-fields">
+                                            <tui-textfield>
+                                                <input tuiTextfield placeholder="Сегмент" [(ngModel)]="r.n" />
+                                            </tui-textfield>
+                                            <tui-textfield>
+                                                <input tuiTextfield placeholder="Сколько человек" [(ngModel)]="r.c" />
+                                            </tui-textfield>
+                                            <tui-textfield tuiChevron>
+                                                <input tuiSelect [(ngModel)]="r.s" />
+                                                <tui-data-list-wrapper *tuiTextfieldDropdown [items]="SHARES" />
+                                            </tui-textfield>
+                                        </div>
+                                        @if (s.seg.length > 1) {
+                                            <button tuiButton appearance="flat" size="s" type="button" (click)="s.seg.splice($index, 1)">Удалить сегмент</button>
+                                        }
+                                    }
+                                    <button type="button" class="guide-add" (click)="addSeg()">
+                                        <span class="guide-add-icon"><tui-icon icon="@tui.plus" /></span>
+                                        Добавить сегмент
+                                    </button>
+                                </div>
+
+                                <div class="guide-field">
+                                    <label tuiLabel>Что болит</label>
+                                    <tui-textfield>
+                                        <textarea
+                                            tuiTextarea
+                                            [min]="3"
+                                            placeholder="Ошибся с выбором магазина и не может перевыбрать сам — идет в поддержку и ждет до недели"
+                                            [invalid]="showError() && !T(s.pUsrAs)"
+                                            [(ngModel)]="s.pUsrAs"
+                                        ></textarea>
+                                    </tui-textfield>
+                                    @if (showError() && !T(s.pUsrAs)) {
+                                        <span class="guide-error">Напишите, что происходит с человеком</span>
+                                    }
+                                </div>
+                                <div class="guide-field">
+                                    <label tuiLabel>Как решают сейчас</label>
+                                    <tui-textfield>
+                                        <textarea
+                                            tuiTextarea
+                                            [min]="3"
+                                            placeholder="Пишет в поддержку, оператор пересоздает заявку вручную — от 1 до 7 дней"
+                                            [invalid]="showError() && !T(s.nowSolve)"
+                                            [(ngModel)]="s.nowSolve"
+                                        ></textarea>
+                                    </tui-textfield>
+                                    @if (showError() && !T(s.nowSolve)) {
+                                        <span class="guide-error">Опишите, что человек делает сейчас и сколько это занимает</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        @if (step.id === 'src') {
+                            <div class="guide-src">
+                                @for (m of SRC; track m.id) {
+                                    <div class="guide-src-item">
+                                        <label tuiCell="l" class="guide-src-cell">
+                                            <input
+                                                tuiCheckbox
+                                                type="checkbox"
+                                                size="m"
+                                                [(ngModel)]="s.src[m.id]!.on"
+                                            />
+                                            <span tuiTitle>{{ m.n }}</span>
+                                        </label>
+                                        <div class="guide-src-reveal" [class.open]="s.src[m.id]!.on">
+                                            <div class="guide-src-clip">
+                                                <div class="guide-src-fields">
+                                                    <tui-textfield>
+                                                        <textarea
+                                                            tuiTextarea
+                                                            [min]="2"
+                                                            [placeholder]="m.outPh"
+                                                            [(ngModel)]="s.src[m.id]!.out"
+                                                        ></textarea>
+                                                    </tui-textfield>
+                                                    <tui-textfield>
+                                                        <input
+                                                            tuiTextfield
+                                                            [placeholder]="m.linkPh"
+                                                            [(ngModel)]="s.src[m.id]!.l"
+                                                        />
+                                                    </tui-textfield>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        @if (step.id === 'business') {
+                            <div class="guide-stack">
+                                <div class="guide-field">
+                                    <label tuiLabel>Как сейчас</label>
+                                    <tui-textfield>
+                                        <textarea
+                                            tuiTextarea
+                                            [min]="3"
+                                            placeholder="Тратим ресурс поддержки на 10–20 обращений в месяц"
+                                            [(ngModel)]="s.pBizAs"
+                                        ></textarea>
+                                    </tui-textfield>
+                                    @if (showError() && !T(s.pBizAs)) {
+                                        <span class="guide-error">Опишите, что теряет бизнес сейчас</span>
+                                    }
+                                </div>
+                                <div class="guide-field">
+                                    <label tuiLabel>Как будет</label>
+                                    <tui-textfield>
+                                        <textarea
+                                            tuiTextarea
+                                            [min]="3"
+                                            placeholder="Пользователь исправляет все сам, обращения не доходят до поддержки"
+                                            [(ngModel)]="s.pBizTo"
+                                        ></textarea>
+                                    </tui-textfield>
+                                    @if (showError() && !T(s.pBizTo)) {
+                                        <span class="guide-error">Опишите, что изменится после решения</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        
+                        @if (step.id === 'why') {
+                            <tui-textfield>
+                                <input tuiTextfield type="date" [(ngModel)]="s.devDate" />
+                            </tui-textfield>
+                        }
+                        @if (step.id === 'hyp') {
+                            <div class="guide-stack guide-hyp-fields">
+                                <tui-textfield>
+                                    <textarea tuiTextarea [min]="2" placeholder="Если" [(ngModel)]="s.hyp.a"></textarea>
+                                </tui-textfield>
+                                <tui-textfield>
+                                    <textarea tuiTextarea [min]="2" placeholder="то" [(ngModel)]="s.hyp.b"></textarea>
+                                </tui-textfield>
+                                <tui-textfield>
+                                    <textarea tuiTextarea [min]="2" placeholder="потому что" [(ngModel)]="s.hyp.c"></textarea>
+                                </tui-textfield>
+                            </div>
+
+                            <h3 tuiTitle>Метрики цели</h3>
+                            <div class="guide-rows">
+                                @for (r of s.met; track $index) {
+                                    <div class="guide-row-fields">
+                                        <tui-textfield>
+                                            <input tuiTextfield placeholder="Ключевая метрика" [(ngModel)]="r.n" />
+                                        </tui-textfield>
+                                        <tui-textfield>
+                                            <input tuiTextfield placeholder="Сейчас" [(ngModel)]="r.a" />
+                                        </tui-textfield>
+                                        <tui-textfield>
+                                            <input tuiTextfield placeholder="Цель" [(ngModel)]="r.b" />
+                                        </tui-textfield>
+                                        <tui-textfield>
+                                            <input tuiTextfield placeholder="Где смотреть" [(ngModel)]="r.l" />
+                                        </tui-textfield>
+                                    </div>
+                                    @if (s.met.length > 1) {
+                                        <button tuiButton appearance="flat" size="s" type="button" (click)="s.met.splice($index, 1)">Удалить метрику</button>
+                                    }
+                                }
+                                <button type="button" class="guide-add" (click)="addMet()">
+                                    <span class="guide-add-icon"><tui-icon icon="@tui.plus" /></span>
+                                    Добавить метрику
+                                </button>
+                            </div>
+                        }
+
+                        @if (step.id === 'refs') {
+                            <div class="guide-src">
+                                @for (m of REFS; track m.id) {
+                                    <div class="guide-src-item">
+                                        <label tuiCell="l" class="guide-src-cell">
+                                            <input tuiCheckbox type="checkbox" size="m" [(ngModel)]="s.refs[m.id]!.on" />
+                                            <span tuiTitle>{{ m.n }}</span>
+                                        </label>
+                                        <div class="guide-src-reveal" [class.open]="s.refs[m.id]!.on">
+                                            <div class="guide-src-clip">
+                                                <div class="guide-src-fields">
+                                                    <tui-textfield>
+                                                        <input tuiTextfield placeholder="Ссылки" [(ngModel)]="s.refs[m.id]!.l" />
+                                                    </tui-textfield>
+                                                    <tui-textfield>
+                                                        <input tuiTextfield placeholder="Что берем и почему" [(ngModel)]="s.refs[m.id]!.take" />
+                                                    </tui-textfield>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                    </div>
+                    </div>
+
+                    <div class="guide-actions">
+                        @if (cur() < steps.length - 1) {
+                            <button tuiButton appearance="primary" size="l" type="button" (click)="next()">Дальше</button>
+                        } @else {
+                            <button tuiButton appearance="primary" size="l" type="button" (click)="send()">Отправить дизайнеру</button>
+                        }
+                    </div>
+                </main>
+            </div>
+        }
+    }
+
+    <ng-template [tuiDialogOptions]="{size: 'm', closeable: true}" [(tuiDialog)]="whyOpen">
+        <div class="dlg">
+            <header tuiHeader>
+                <h2 tuiTitle>
+                    {{ readiness().v }}
+                    <span tuiSubtitle>{{ readiness().w }}</span>
+                </h2>
+            </header>
+
+            <h3 tuiTitle>Что дизайнер спросит первым</h3>
+            @for (x of reqOpen(); track x.id) {
+                <button tuiCell="m" type="button" (click)="openStep(x.id)">
+                    <span tuiTitle>
+                        {{ x.nav }}
+                        <span tuiSubtitle>{{ miss(x.id) }}</span>
+                    </span>
+                </button>
+            } @empty {
+                <span class="muted">Ничего: обязательное закрыто полностью</span>
+            }
+
+            <h3 tuiTitle>Можно усилить</h3>
+            @for (x of optOpen(); track x.id) {
+                <button tuiCell="m" type="button" (click)="openStep(x.id)">
+                    <span tuiTitle>
+                        {{ x.nav }}
+                        <span tuiSubtitle>{{ miss(x.id) }}</span>
+                    </span>
+                </button>
+            } @empty {
+                <span class="muted">Необязательные шаги заполнены</span>
+            }
+
+            <h3 tuiTitle>Правила передачи</h3>
+            @for (r of rules(); track r.k) {
+                <tui-notification size="s" [appearance]="r.on ? r.appearance : 'neutral'">
+                    <b>{{ r.k }}.</b> {{ r.t }}
+                </tui-notification>
+            }
+        </div>
+    </ng-template>
+</tui-root>
