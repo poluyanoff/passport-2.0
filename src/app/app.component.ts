@@ -12,7 +12,7 @@ import {
     tuiCheckboxOptionsProvider,
 } from '@taiga-ui/kit';
 import {TuiAppBar, TuiCardLarge, TuiCell, TuiHeader} from '@taiga-ui/layout';
-import {CHECKS, INFL, REFS, SHARES, SPECIAL, SRC, STEPS} from './steps.data';
+import {BIZ, CHECKS, INFL, REFS, SHARES, SPECIAL, SRC, STEPS} from './steps.data';
 
 type St = 'g' | 'a' | 'r';
 
@@ -30,12 +30,13 @@ interface Model {
     pUsrTo: string;
     nowSolve: string;
     src: Record<string, {on: boolean; out: string; l: string}>;
-    seg: Array<{n: string; c: string; s: string}>;
+    seg: {n: string; c: string; s: string};
     ctx: string;
     met: Array<{n: string; a: string; b: string; l: string}>;
     checks: string[];
     special: string | null;
     specialWhy: string;
+    biz: Record<string, boolean>;
     whyNow: string;
     devDate: string;
     hyp: {a: string; b: string; c: string; d: string};
@@ -53,12 +54,13 @@ function empty(): Model {
         pUsrTo: '',
         nowSolve: '',
         src: Object.fromEntries(SRC.map(s => [s.id, {on: false, out: '', l: ''}])),
-        seg: [{n: '', c: '', s: ''}],
+        seg: {n: '', c: '', s: ''},
         ctx: '',
         met: [{n: '', a: '', b: '', l: ''}],
         checks: [],
         special: null,
         specialWhy: '',
+        biz: Object.fromEntries(BIZ.map(b => [b.id, false])),
         whyNow: '',
         devDate: '',
         hyp: {a: '', b: '', c: '', d: ''},
@@ -108,6 +110,7 @@ export class AppComponent implements OnInit {
     protected readonly SPECIAL = SPECIAL;
     protected readonly SHARES = SHARES;
     protected readonly INFL = INFL;
+    protected readonly BIZ = BIZ;
 
     protected readonly hypRows: Array<{k: 'a' | 'b' | 'c' | 'd'; kw: string; ph: string}> = [
         {k: 'a', kw: 'Если', ph: 'воздействие, приводящее к изменению поведения субъекта'},
@@ -214,8 +217,8 @@ export class AppComponent implements OnInit {
             return 'Отметьте хотя бы один источник';
         }
 
-        if (this.step.id === 'business' && (!T(s.pBizAs) || !T(s.pBizTo))) {
-            return 'Опишите, что теряет бизнес сейчас и что изменится после решения';
+        if (this.step.id === 'business' && !this.hasBiz()) {
+            return 'Отметьте, на что влияет задача в бизнесе';
         }
 
         return '';
@@ -246,12 +249,20 @@ export class AppComponent implements OnInit {
         this.go(0);
     }
 
-    protected addSeg(): void {
-        this.s.seg.push({n: '', c: '', s: ''});
-    }
-
     protected addMet(): void {
         this.s.met.push({n: '', a: '', b: '', l: ''});
+    }
+
+    protected toggleBiz(c: string, on: boolean): void {
+        this.s.biz[c] = on;
+    }
+
+    protected hasBiz(): boolean {
+        return BIZ.some(b => this.s.biz[b.id]);
+    }
+
+    protected bizSum(): string {
+        return BIZ.filter(b => this.s.biz[b.id]).map(b => b.n).join(', ');
     }
 
     protected toggleCheck(c: string, on: boolean): void {
@@ -280,6 +291,10 @@ export class AppComponent implements OnInit {
         return SRC.some(x => this.s.src[x.id]?.on);
     }
 
+    protected hasConfirmedSources(): boolean {
+        return SRC.slice(0, -1).some(x => this.s.src[x.id]?.on);
+    }
+
     protected isRequired(id: string): boolean {
         return !OPTIONAL.includes(id);
     }
@@ -299,8 +314,9 @@ export class AppComponent implements OnInit {
     }
 
     private segState(): St {
-        const full = this.s.seg.filter(r => T(r.n) && T(r.c) && r.s).length;
-        const part = this.s.seg.filter(r => T(r.n) || T(r.c) || r.s).length;
+        const r = this.s.seg;
+        const full = T(r.n) && T(r.c) && r.s;
+        const part = T(r.n) || T(r.c) || r.s;
 
         return full ? 'g' : part ? 'a' : 'r';
     }
@@ -350,7 +366,7 @@ export class AppComponent implements OnInit {
             case 'problem':
                 return s.pUsrAs && s.nowSolve ? 'g' : s.pUsrAs || s.nowSolve ? 'a' : 'r';
             case 'business':
-                return s.pBizAs && s.pBizTo ? 'g' : s.pBizAs || s.pBizTo ? 'a' : 'r';
+                return this.hasBiz() ? 'g' : 'r';
             case 'src':
                 return this.proofState();
             case 'why':
@@ -377,7 +393,7 @@ export class AppComponent implements OnInit {
             case 'problem':
                 return [first(s.pUsrAs), first(s.nowSolve)].filter(Boolean).join(' · ');
             case 'business':
-                return first(s.pBizAs);
+                return this.bizSum();
             case 'src': {
                 const on = SRC.filter(x => s.src[x.id]?.on);
                 const out = on.map(x => T(s.src[x.id]?.out)).find(Boolean);
@@ -419,7 +435,7 @@ export class AppComponent implements OnInit {
             case 'problem':
                 return !T(s.pUsrAs) && !T(s.nowSolve) ? 'не заполнено' : !T(s.pUsrAs) ? 'нет проблемы' : 'нет описания, как решают сейчас';
             case 'business':
-                return s.pBizAs && s.pBizTo ? '' : 'не заполнено';
+                return this.hasBiz() ? '' : 'не отмечено, на что влияет';
             case 'src':
                 return this.proofState() === 'r' ? 'ни один источник не отмечен' : '';
             case 'why':
@@ -513,7 +529,7 @@ export class AppComponent implements OnInit {
                 sup: {on: true, out: '14 обращений за июль, все про перевыбор магазина', l: 'dash/tickets'},
                 an: {on: true, out: 'Воронка подключения: 8% отвалов на шаге выбора магазина', l: 'dash/funnel'},
             },
-            seg: [{n: 'Новые селлеры на подключении', c: '≈1000 в Q3', s: '5–10%'}],
+            seg: {n: 'Новые селлеры на подключении', c: '≈1000 в Q3', s: '5–10%'},
             ctx: 'Подключаю магазин с ноутбука один раз, в начале работы с сервисом, спешу и не перечитываю подписи к полям.',
             met: [
                 {n: 'Обращения по пересозданию заявки', a: '10–20 в месяц', b: '0–2 в месяц', l: 'dash/support-tickets'},
@@ -522,6 +538,7 @@ export class AppComponent implements OnInit {
             checks: ['Сравнение метрики до и после', 'Счетчик использования'],
             special: null,
             specialWhy: '',
+            biz: {...empty().biz, fin: true, mau: true},
             whyNow: 'До конца года цель 3–5 тысяч новых пользователей — при текущем флоу нагрузка на поддержку вырастет пропорционально.',
             devDate: '2026-09-01',
             hyp: {

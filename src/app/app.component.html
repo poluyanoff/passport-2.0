@@ -77,28 +77,24 @@
                         @if (step.id === 'problem') {
                             <div class="guide-stack">
                                 <h3 tuiTitle>Аудитория</h3>
-                                <div class="guide-rows">
-                                    @for (r of s.seg; track $index) {
-                                        <div class="guide-row-fields">
-                                            <tui-textfield>
-                                                <input tuiTextfield placeholder="Сегмент" [(ngModel)]="r.n" />
-                                            </tui-textfield>
-                                            <tui-textfield>
-                                                <input tuiTextfield placeholder="Сколько человек" [(ngModel)]="r.c" />
-                                            </tui-textfield>
-                                            <tui-textfield tuiChevron>
-                                                <input tuiSelect [(ngModel)]="r.s" />
-                                                <tui-data-list-wrapper *tuiTextfieldDropdown [items]="SHARES" />
-                                            </tui-textfield>
-                                        </div>
-                                        @if (s.seg.length > 1) {
-                                            <button tuiButton appearance="flat" size="s" type="button" (click)="s.seg.splice($index, 1)">Удалить сегмент</button>
-                                        }
-                                    }
-                                    <button type="button" class="guide-add" (click)="addSeg()">
-                                        <span class="guide-add-icon"><tui-icon icon="@tui.plus" /></span>
-                                        Добавить сегмент
-                                    </button>
+                                <div class="guide-row-fields">
+                                    <tui-textfield>
+                                        <input tuiTextfield placeholder="Сегмент" [(ngModel)]="s.seg.n" />
+                                    </tui-textfield>
+                                    <tui-textfield>
+                                        <input tuiTextfield placeholder="Сколько человек" [(ngModel)]="s.seg.c" />
+                                    </tui-textfield>
+                                    <tui-textfield tuiChevron>
+                                        <label>
+                                            Доля от общей аудитории
+                                            <select tuiSelect [(ngModel)]="s.seg.s" [items]="SHARES">
+                                                <option value="">Не выбрано</option>
+                                                @for (share of SHARES; track share) {
+                                                    <option [value]="share">{{ share }}</option>
+                                                }
+                                            </select>
+                                        </label>
+                                    </tui-textfield>
                                 </div>
 
                                 <div class="guide-field">
@@ -146,61 +142,44 @@
                                             />
                                             <span tuiTitle>{{ m.n }}</span>
                                         </label>
-                                        <div class="guide-src-reveal" [class.open]="s.src[m.id]!.on">
-                                            <div class="guide-src-clip">
-                                                <div class="guide-src-fields">
-                                                    <tui-textfield>
-                                                        <textarea
-                                                            tuiTextarea
-                                                            [min]="2"
-                                                            [placeholder]="m.outPh"
-                                                            [(ngModel)]="s.src[m.id]!.out"
-                                                        ></textarea>
-                                                    </tui-textfield>
-                                                    <tui-textfield>
-                                                        <input
-                                                            tuiTextfield
-                                                            [placeholder]="m.linkPh"
-                                                            [(ngModel)]="s.src[m.id]!.l"
-                                                        />
-                                                    </tui-textfield>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
                                 }
                             </div>
+                            @if (hasConfirmedSources()) {
+                                <div class="guide-stack guide-src-links">
+                                    <h3 tuiTitle>Ссылки на артефакты</h3>
+                                    @for (m of SRC; track m.id) {
+                                        @if (m.id !== 'op' && s.src[m.id]!.on) {
+                                            <tui-textfield>
+                                                <input
+                                                    tuiTextfield
+                                                    [placeholder]="m.linkPh"
+                                                    [(ngModel)]="s.src[m.id]!.l"
+                                                />
+                                            </tui-textfield>
+                                        }
+                                    }
+                                </div>
+                            }
                         }
                         @if (step.id === 'business') {
                             <div class="guide-stack">
-                                <div class="guide-field">
-                                    <label tuiLabel>Как сейчас</label>
-                                    <tui-textfield>
-                                        <textarea
-                                            tuiTextarea
-                                            [min]="3"
-                                            placeholder="Тратим ресурс поддержки на 10–20 обращений в месяц"
-                                            [(ngModel)]="s.pBizAs"
-                                        ></textarea>
-                                    </tui-textfield>
-                                    @if (showError() && !T(s.pBizAs)) {
-                                        <span class="guide-error">Опишите, что теряет бизнес сейчас</span>
+                                <h3 tuiTitle>На что влияет в бизнесе</h3>
+                                <div class="guide-rows">
+                                    @for (b of BIZ; track b.id) {
+                                        <label tuiCell="l" class="guide-src-cell">
+                                            <input
+                                                type="checkbox"
+                                                [checked]="s.biz[b.id]"
+                                                (change)="toggleBiz(b.id, $any($event.target).checked)"
+                                            />
+                                            <span tuiTitle>{{ b.n }}</span>
+                                        </label>
                                     }
                                 </div>
-                                <div class="guide-field">
-                                    <label tuiLabel>Как будет</label>
-                                    <tui-textfield>
-                                        <textarea
-                                            tuiTextarea
-                                            [min]="3"
-                                            placeholder="Пользователь исправляет все сам, обращения не доходят до поддержки"
-                                            [(ngModel)]="s.pBizTo"
-                                        ></textarea>
-                                    </tui-textfield>
-                                    @if (showError() && !T(s.pBizTo)) {
-                                        <span class="guide-error">Опишите, что изменится после решения</span>
-                                    }
-                                </div>
+                                @if (showError() && !hasBiz()) {
+                                    <span class="guide-error">Отметьте, на что влияет задача</span>
+                                }
                             </div>
                         }
                         
