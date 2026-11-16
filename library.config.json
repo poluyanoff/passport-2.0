@@ -1,0 +1,5 @@
+{
+  "repository": "https://github.com/tbank-product-design/taiga-ui-tbank.git",
+  "ref": "HEAD",
+  "intervalMinutes": 15
+}

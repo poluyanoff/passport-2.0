@@ -1,0 +1,71 @@
+/* Demo canvas and phone frame; these do not style DS component internals. */
+body:has(.topbar) { height: 100dvh; overflow: hidden; }
+body > #root:has(> .topbar) { position: relative; height: 100dvh; display: flex; flex-direction: column; align-items: stretch; background: var(--tui-background-neutral-2); }
+.bare-flow { min-height: 100dvh; }
+.app-content { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.sidebar-nav { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
+.sidebar-link { appearance: none; border: 0; background: transparent; padding: 8px 4px; text-align: left; font: inherit; font-size: 15px; line-height: 20px; color: var(--tui-text-secondary); cursor: pointer; border-radius: 8px; }
+.sidebar-link:hover { color: var(--tui-text-primary); }
+.sidebar-link.is-active { color: var(--tui-text-primary); font-weight: 600; }
+.sidebar-link:focus-visible { outline: 2px solid var(--tui-border-focus); outline-offset: 2px; }
+.topbar { position: relative; flex: none; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 12px 12px 20px; background: transparent; }
+.solution-pane { overflow: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: safe center; gap: 16px; padding: 20px 12px 12px; }
+.solution-pane[hidden] { display: none; }
+.empty-pane { flex: 1; display: grid; place-items: center; color: var(--tui-text-secondary); }
+.flow-controls { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: none; }
+.flow-title { margin: 0; padding: 0; color: var(--tui-text-primary); }
+.flow-controls-actions { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.phone-viewport { position: relative; width: min(375px, 100%); flex: 1 1 0; min-height: 0; max-height: 812px; border-radius: 32px; overflow: hidden; isolation: isolate; transform: translateZ(0); flex: none; background: var(--tui-background-base); }
+.preview-modal { position: absolute; inset: 0; z-index: 10; background: var(--tui-background-base); }
+.preview-modal-scroll { height: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; outline: none; }
+.desktop-viewport { position: relative; width: min(1360px, 100%); height: 800px; flex: none; border-radius: 16px; overflow: hidden; isolation: isolate; display: flex; background: var(--tui-background-base); }
+.desktop-viewport > .empty-pane { flex: 1; }
+.desktop-viewport > :not(.empty-pane) { flex: 1; min-width: 0; }
+.desktop-viewport[hidden], .phone-viewport[hidden] { display: none; }
+.theme-switch { display: flex; }
+.theme-switch[hidden] { display: none; }
+.segment-tips { position: relative; display: flex; }
+.segment-tips__anchor { position: absolute; pointer-events: none; }
+.client-switch { align-self: flex-start; }
+.top-chips { display: flex; gap: 8px; }
+.top-right { display: flex; align-items: center; gap: 32px; }
+.controls-divider { width: 1px; height: 20px; background: var(--tui-border-normal); flex: none; }
+/* О задаче: паспорт из Figma */
+.about-pane { flex: 1; min-height: 0; overflow: auto; padding: 0 12px 12px; }
+.about-task { display: flex; flex-direction: column; gap: 24px; max-width: 1190px; margin: 0 auto; }
+.about-sheet { background: var(--tui-background-base); border-radius: 40px; padding: 64px 128px; color: var(--tui-text-primary); }
+.about-sheet :where(h1, h2, h3, p, ul) { margin: 0; }
+.about-h3 { padding: 16px 0 8px; }
+.about-p { max-width: 700px; margin-bottom: 12px; }
+.about-p:last-child { margin-bottom: 0; }
+.about-crumbs { margin-bottom: 16px; }
+.about-block { padding-bottom: 32px; }
+.about-ul { max-width: 700px; padding-left: 22px; margin-bottom: 12px; }
+.about-ul:last-child { margin-bottom: 0; }
+.about-ul li + li { margin-top: 4px; }
+.about-links { display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 0 32px; }
+.about-link { display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; border-radius: 100px; color: var(--tui-text-primary); background: var(--tui-background-neutral-2); text-decoration: none; }
+a.about-link .about-link__label { text-decoration: underline; }
+.about-link { gap: 4px; padding: 0 10px 0 6px; }
+.about-link--dark { background: #000; color: #fff; }
+.about-link--accent { background: var(--tui-background-accent-2); color: #fff; }
+.about-badge { display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; margin-bottom: 8px; border-radius: 100px; background: var(--tui-background-accent-2); color: #fff; }
+.about-h1 { padding-bottom: 20px; }
+.about-h2 { padding: 16px 0 8px; }
+.top-controls { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; pointer-events: none; }
+.top-controls > * { pointer-events: auto; }
+.about-person { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.about-person > .about-h2 { flex: 1 1 auto; min-width: 0; }
+.about-nick { display: inline-flex; align-items: center; gap: 2px; min-height: 28px; margin-top: 20px; padding: 0 10px 0 6px; border-radius: 100px; background: var(--tui-background-accent-1); color: var(--tui-text-primary-on-accent-1, #333); white-space: nowrap; }
+.preview-modal { animation: preview-modal-in 300ms cubic-bezier(0, 0, 0.2, 1) both; }
+@keyframes preview-modal-in { from { transform: translateY(100%); } }
+.preview-modal.is-closing { animation: preview-modal-out 300ms cubic-bezier(.4, 0, 1, 1) both; pointer-events: none; }
+@keyframes preview-modal-out { to { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) { .preview-modal, .preview-modal.is-closing { animation: none; } }
+
+.about-code { max-width: 700px; margin: 0 0 12px; padding: 16px 20px; overflow-x: auto; border-radius: 16px; background: var(--tui-background-neutral-1); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; font-variant-ligatures: none; }
+.about-sheet :where(pre) { margin-bottom: 12px; }
+.guide-back { display: inline-block; margin: 0 0 16px 12px; color: var(--tui-text-secondary); }
+.guide-back:hover { color: var(--tui-text-primary); }
+
+.home-button { position: absolute; left: 32px; bottom: 32px; z-index: 20; }
