@@ -1,0 +1,10 @@
+{
+  "name": "Инициатива бизнеса без проблемы пользователя",
+  "expectedIssueIds": [],
+  "passport": {
+    "situation": {"context": "", "difficulty": "", "consequence": "", "businessInitiative": true},
+    "business": {"impacts": ["Репутация"], "comment": ""},
+    "hypothesis": {"if": "", "then": "", "because": ""},
+    "metrics": [{"name": "NPS", "current": "45", "target": "50"}]
+  }
+}

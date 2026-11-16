@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "passport-2-0",
+  "main": "worker/index.mjs",
+  "compatibility_date": "2026-11-16",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/health"]
+  },
+  "vars": {
+    "AI_PROVIDER": "openai",
+    "OPENAI_MODEL": "gpt-4.1-mini",
+    "REVIEW_RATE_LIMIT_MAX": "20",
+    "REVIEW_RATE_LIMIT_WINDOW_MS": "60000"
+  },
+  "durable_objects": {
+    "bindings": [{"name": "RATE_LIMITER", "class_name": "RateLimiter"}]
+  },
+  "migrations": [{"tag": "v1", "new_sqlite_classes": ["RateLimiter"]}]
+}

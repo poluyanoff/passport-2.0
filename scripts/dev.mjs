@@ -5,6 +5,7 @@ import { handleInlineEdit, inlineEditClient } from './inline-edit.mjs';
 import { createServer, request } from 'node:http';
 import { installLibrary } from './library-install.mjs';
 import { checkLibrary } from './library-check.mjs';
+import {handleApi} from '../server/api.mjs';
 
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist');
@@ -28,6 +29,7 @@ if (process.argv.includes('--build')) {
   const { port } = await ctx.serve({ servedir: 'dist', host: '127.0.0.1' });
   let installing = false;
   const server = createServer(async (req, res) => {
+    if (await handleApi(req, res) !== false) return;
     // Правка текстов (Alt+E): записывает новый текст в строковый литерал в screens/
     if (req.url?.split('?')[0] === '/__inline-edit') {
       if (req.method !== 'POST' || req.headers.origin !== `http://${req.headers.host}`) { res.statusCode = 403; return res.end(); }

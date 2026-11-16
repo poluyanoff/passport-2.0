@@ -1,0 +1,10 @@
+{
+  "name": "Общее описание с замечаниями",
+  "expectedIssueIds": ["situation-specificity", "business-impact", "hypothesis-specificity", "metrics-quality"],
+  "passport": {
+    "situation": {"context": "Не знаю", "difficulty": "Плохо", "consequence": "Непонятно", "businessInitiative": false},
+    "business": {"impacts": [], "comment": ""},
+    "hypothesis": {"if": "Сделаем", "then": "Станет лучше", "because": "Так надо"},
+    "metrics": [{"name": "", "current": "", "target": ""}]
+  }
+}

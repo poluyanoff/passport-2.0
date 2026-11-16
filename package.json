@@ -5,16 +5,20 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "node scripts/dev.mjs --build",
+    "start": "node scripts/start.mjs",
     "library:check": "node scripts/library-check.mjs",
+    "review:check": "node scripts/review-check.mjs",
+    "worker:check": "npm run build && wrangler deploy --dry-run",
     "flow:new": "node scripts/flow-new.mjs"
   },
   "dependencies": {
-    "taiga-ui-proprietary": "file:vendor/taiga-ui-proprietary-3.16.0.tgz",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "taiga-ui-proprietary": "file:vendor/taiga-ui-proprietary-3.16.0.tgz"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.25.0",
+    "wrangler": "^4.163.0"
   },
   "engines": {
     "node": ">=20"

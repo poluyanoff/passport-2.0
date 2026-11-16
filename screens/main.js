@@ -22,11 +22,6 @@ const BUSINESS_IMPACTS = ['Финансовые показатели', 'MAU, Ret
 const REFERENCES = ['Прямые конкуренты', 'Косвенные конкуренты', 'Аналоги внутри компании', 'Аналоги внутри отдела'];
 const FREQUENCIES = ['Каждый день', 'Несколько раз в неделю', 'Несколько раз в месяц', 'Реже одного раза в месяц', 'Разово'];
 const DATE_TYPES = ['Старт разработки', 'Передача в разработку', 'Демонстрация бизнесу', 'Запуск в прод'];
-const REVIEW_ISSUES = [
-    {step: 1, title: 'Что происходит', description: 'Добавьте больше конкретики: в каком контексте возникает проблема и к чему она приводит.'},
-    {step: 5, title: 'Как оценим результат', description: 'Сформулируйте метрики так, чтобы по ним можно было однозначно оценить результат.'},
-];
-
 function PassportTextarea({label, labelOutside, value, onChange, disabled, invalid, error, placeholder, rows = 3, compact = false}) {
     return h(T.Textarea, {
         className: compact ? 'passport-textarea passport-textarea--compact' : 'passport-textarea',
@@ -43,6 +38,7 @@ function Passport({platform}) {
     const [checkingProgress, setCheckingProgress] = React.useState(0);
     const [review, setReview] = React.useState(false);
     const [reviewStep, setReviewStep] = React.useState(null);
+    const [reviewIssues, setReviewIssues] = React.useState([]);
     const [segment, setSegment] = React.useState({name: '', count: '', share: ''});
     const [context, setContext] = React.useState('');
     const [difficulty, setDifficulty] = React.useState('');
@@ -70,16 +66,9 @@ function Passport({platform}) {
         const progressTimer = window.setInterval(() => {
             setCheckingProgress(Math.min((Date.now() - startedAt) / 5000, 0.96));
         }, 100);
-        const reviewTimer = window.setTimeout(() => {
-            window.clearInterval(progressTimer);
-            setCheckingProgress(1);
-            setChecking(false);
-            setReview(true);
-        }, 5000);
 
         return () => {
             window.clearInterval(progressTimer);
-            window.clearTimeout(reviewTimer);
         };
     }, [checking]);
 
@@ -135,10 +124,7 @@ function Passport({platform}) {
         if (reviewStep !== null) {
             setReviewStep(null);
             setReview(true);
-        } else if (step === STEPS.length - 1) {
-            setCheckingProgress(0);
-            setChecking(true);
-        }
+        } else if (step === STEPS.length - 1) void startReview();
         else setStep(current => current + 1);
     }
 
@@ -159,8 +145,45 @@ function Passport({platform}) {
         setSent(true);
     }
 
+    function reviewPayload() {
+        return {
+            passport: {
+                audience: segment,
+                situation: {context, difficulty, consequence, frequency, businessInitiative},
+                sources: {items: sources, links: sourceLinks},
+                business: {impacts: businessImpacts, comment: businessComment},
+                hypothesis,
+                metrics,
+                references: references.map(reference => ({name: reference, ...referenceDetails[reference]})),
+                deadline: {date: startDate, type: dateType},
+            },
+        };
+    }
+
+    async function startReview() {
+        setCheckingProgress(0);
+        setChecking(true);
+        try {
+            const response = await fetch('/api/review', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(reviewPayload()),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Не удалось проверить описание');
+            setReviewIssues(Array.isArray(data.issues) ? data.issues : []);
+            if (data.warning) T.showToast({label: data.warning, icon: 'fixed-color/alert-negative'});
+            setCheckingProgress(1);
+            setReview(true);
+        } catch (error) {
+            T.showToast({label: error.message || 'Не удалось проверить описание. Попробуйте ещё раз.', icon: 'fixed-color/alert-negative'});
+        } finally {
+            setChecking(false);
+        }
+    }
+
     function reset() {
-        setStep(0); setShowError(false); setSent(false); setChecking(false); setCheckingProgress(0); setReview(false); setReviewStep(null);
+        setStep(0); setShowError(false); setSent(false); setChecking(false); setCheckingProgress(0); setReview(false); setReviewStep(null); setReviewIssues([]);
         setSegment({name: '', count: '', share: ''}); setContext(''); setDifficulty(''); setConsequence(''); setFrequency(''); setBusinessInitiative(false);
         setSources([]); setSourceLinks(''); setBusinessComment(''); setBusinessImpacts([]);
         setHypothesis({if: '', then: '', because: ''}); setMetrics([{name: '', current: '', target: ''}]);
@@ -257,10 +280,12 @@ function Passport({platform}) {
         platform: mobile ? 'mobile' : undefined, system: mobile ? 'ios' : undefined,
         title: 'Результаты проверки', description: 'Вот что стоит уточнить перед отправкой дизайнеру',
         stickyFooter: true, actions: [{label: 'Отправить дизайнеру', onClick: finishReview}],
-    }, h('div', {className: 'passport-review'}, REVIEW_ISSUES.map(issue => h(T.CardLarge, {
-        key: issue.step, appearance: 'flat', space: 'compact', title: issue.title, description: issue.description,
+    }, h('div', {className: 'passport-review'}, reviewIssues.length
+        ? reviewIssues.map(issue => h(T.CardLarge, {
+        key: issue.id, appearance: 'flat', space: 'compact', title: issue.title, description: issue.description,
         footer: h(T.Button, {appearance: 'secondary', size: 'm', onClick: () => editReviewIssue(issue)}, 'Исправить'), footerKind: 'buttons',
-    }))));
+        }))
+        : h(T.CardLarge, {appearance: 'flat', space: 'compact', title: 'Всё готово', description: 'Замечаний по содержанию нет. Можно отправить описание дизайнеру.'})));
 
     if (sent) return h(T.Dialog, {open: true, inline: true, fullscreen: true, closeButton: false, platform: mobile ? 'mobile' : undefined, system: mobile ? 'ios' : undefined}, h(T.BlockStatus, {type: 'fullscreen', kind: 'result', image: 'check', title: 'Задача описана', text: 'Вставьте описание в эпик в поле Description', actions: [{label: 'Скопировать описание', icon: 'small-pragmatic/copy', onClick: copyEpicDescription}, {label: 'Заполнить заново', appearance: 'secondary', onClick: reset}]}));
 
