@@ -89,14 +89,6 @@
     max-width: 720px;
 }
 
-.passport-textarea {
-    min-height: 140px;
-}
-
-.passport-textarea--compact {
-    min-height: 88px;
-}
-
 .passport-add-metric {
     display: inline-flex;
     align-items: center;

@@ -57,12 +57,12 @@ function metricDelta(metric) {
     const sign = difference > 0 ? '+' : '';
     const absoluteUnit = metric.unit === '%' ? ' п.п.' : metric.unit ? ` ${metric.unit}` : '';
     const absolute = `${sign}${formatMetricValue(difference)}${absoluteUnit}`;
-    if (current === 0) return `(${absolute})`;
+    if (current === 0) return absolute;
 
     const relative = difference / Math.abs(current);
     const multiplier = target / current;
     const relativeSign = relative > 0 ? '+' : '';
-    return `(${absolute}, ${relativeSign}${formatMetricValue(relative * 100)}%, ×${formatMetricValue(multiplier)})`;
+    return `${absolute}, ${relativeSign}${formatMetricValue(relative * 100)}%, ×${formatMetricValue(multiplier)}`;
 }
 
 function metricRange(metric) {
@@ -106,7 +106,7 @@ function PassportTextarea({label, labelOutside, value, onChange, disabled, inval
     return h(T.Textarea, {
         className: compact ? 'passport-textarea passport-textarea--compact' : 'passport-textarea',
         label, labelOutside, labelOff: true, value, onChange, disabled, invalid, error, placeholder: label || placeholder, rows,
-        height: compact ? 52 : TEXTAREA_HEIGHT,
+        height: TEXTAREA_HEIGHT,
     });
 }
 
