@@ -10,6 +10,7 @@ import {handleApi} from '../server/api.mjs';
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist');
 await copyFile('index.html', 'dist/index.html');
+await copyFile('favicon.svg', 'dist/favicon.svg');
 // Дополнительные флоу (npm run flow:new): screens/<адрес>/entry.js + index.html → dist/screens/<адрес>/
 const entryPoints = { app: 'screens/main.js' };
 const pages = (await readdir('screens', { recursive: true, withFileTypes: true }).catch(() => []))

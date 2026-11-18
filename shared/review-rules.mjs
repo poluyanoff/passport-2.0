@@ -41,12 +41,12 @@ export function reviewWithRules(passport) {
             recommendation: 'Уточните, что именно изменится для пользователя и почему это даст ожидаемый результат.',
         }));
     }
-    const completeMetrics = metrics.filter(metric => text(metric.name) && text(metric.current) && text(metric.unit) && text(metric.currentDate) && text(metric.target));
+    const completeMetrics = metrics.filter(metric => text(metric.name) && text(metric.current) && text(metric.unit) && text(metric.target));
     if (!completeMetrics.length || completeMetrics.some(metric => !isSpecific(metric.name, 2) || !isSpecific(metric.target, 1))) {
         issues.push(issue({
             id: 'metrics-quality', step: 5, title: 'Как оценим результат',
             description: 'Сформулируйте метрики так, чтобы по ним можно было однозначно оценить результат.',
-            recommendation: 'Укажите название метрики, текущее и целевое значения, единицу измерения и дату текущего значения.',
+            recommendation: 'Укажите название метрики, текущее и целевое значения и единицу измерения.',
         }));
     }
     return issues;

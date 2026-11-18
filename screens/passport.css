@@ -22,7 +22,8 @@
 .passport-metrics,
 .passport-reference,
 .passport-hypotheses,
-.passport-hypothesis-list {
+.passport-hypothesis-list,
+.passport-metric-list {
     display: grid;
     gap: 16px;
 }
@@ -88,24 +89,12 @@
     max-width: 720px;
 }
 
-/* В пустом Textarea DS сворачивает область ввода, чтобы показать крупный
-   внутренний лейбл. Для формы удерживаем место под три строки, чтобы
-   заполнение не двигало следующие поля. */
-.passport-textarea .tui-ta__value--float {
-    position: static !important;
-    height: 104px !important;
-}
-
 .passport-textarea {
     min-height: 140px;
 }
 
 .passport-textarea--compact {
     min-height: 88px;
-}
-
-.passport-textarea--compact .tui-ta__value--float {
-    height: 52px !important;
 }
 
 .passport-add-metric {
@@ -132,24 +121,18 @@
     color: var(--tui-text-action);
 }
 
-.passport-add-hypothesis .passport-add-metric__icon {
-    width: 40px;
-    height: 40px;
-}
+.passport-add-metric__icon { width: 40px; height: 40px; }
 
 .passport-hypothesis-list {
     display: contents;
 }
 
-.passport-add-metric:hover .passport-add-metric__icon {
-    background: var(--tui-background-neutral-1-hover);
+.passport-metric-list {
+    display: contents;
 }
 
-.passport-date .tui-input,
-.passport-date .tui-input__box,
-.passport-date .tui-input__value,
-.passport-date .tui-idate__icon {
-    cursor: pointer;
+.passport-add-metric:hover .passport-add-metric__icon {
+    background: var(--tui-background-neutral-1-hover);
 }
 
 @media (max-width: 720px) {
