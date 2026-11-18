@@ -105,7 +105,7 @@ function useEntityCollection(createEntity, limit = Infinity) {
 function PassportTextarea({label, labelOutside, value, onChange, disabled, invalid, error, placeholder, rows = 3, compact = false}) {
     return h(T.Textarea, {
         className: compact ? 'passport-textarea passport-textarea--compact' : 'passport-textarea',
-        label, labelOutside, labelOff: true, value, onChange, disabled, invalid, error, placeholder, rows,
+        label, labelOutside, value, onChange, disabled, invalid, error, placeholder, rows,
         height: TEXTAREA_HEIGHT,
     });
 }

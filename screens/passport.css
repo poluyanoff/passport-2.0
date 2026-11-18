@@ -90,6 +90,11 @@
     max-width: 720px;
 }
 
+.passport-textarea .tui-ta__value--float {
+    position: static !important;
+    height: 104px !important;
+}
+
 .passport-add-metric {
     display: inline-flex;
     align-items: center;
