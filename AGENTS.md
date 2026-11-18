@@ -1,6 +1,6 @@
 # Прототип на Taiga UI · Т-Банк
 
-Перед работой прочитай docs/README.md и README используемых компонентов в docs/components/.
+Перед работой прочитай README.md, docs/ARCHITECTURE.md и docs/OPERATIONS.md.
 Создавай экраны в screens/. Используй React.createElement и компоненты T из screens/runtime.js.
 Не копируй бандлы и не изменяй node_modules. Тема — в `index.html`: desktop-day, у проекта, созданного с `--mobile`, — ios-day и экран в рамке телефона; не смешивай платформы.
 Используй PageLayout, CardLarge, Cell, Button и другие готовые компоненты. Цвета — только токены, текст — классы типографики ДС. Не создавай свои аналоги компонентов.
