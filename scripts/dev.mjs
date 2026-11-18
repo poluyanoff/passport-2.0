@@ -26,7 +26,7 @@ if (process.argv.includes('--build')) {
 } else {
   const ctx = await esbuild.context(options);
   await ctx.watch();
-  const { port } = await ctx.serve({ servedir: 'dist', host: '127.0.0.1' });
+  const { port } = await ctx.serve({ servedir: 'dist', host: '127.0.0.1', port: 8001 });
   let installing = false;
   const server = createServer(async (req, res) => {
     if (await handleApi(req, res) !== false) return;
@@ -63,8 +63,8 @@ if (process.argv.includes('--build')) {
     } catch (error) { reply(500, { message: error.message }); }
     finally { installing = false; }
   });
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  console.log(`\nПрототип: http://127.0.0.1:${server.address().port}\nИзмените screens/main.js и обновите страницу.\n`);
+  await new Promise(resolve => server.listen(8000, '127.0.0.1', resolve));
+  console.log('\nПрототип: http://127.0.0.1:8000\nИзмените screens/main.js и обновите страницу.\n');
   let checking = false;
   const check = async () => {
     if (checking) return;

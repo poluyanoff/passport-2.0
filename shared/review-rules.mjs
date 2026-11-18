@@ -17,7 +17,7 @@ export function reviewWithRules(passport) {
     const issues = [];
     const situation = passport.situation || {};
     const business = passport.business || {};
-    const hypothesis = passport.hypothesis || {};
+    const hypotheses = Array.isArray(passport.hypotheses) ? passport.hypotheses : [];
     const metrics = Array.isArray(passport.metrics) ? passport.metrics : [];
 
     if (!situation.businessInitiative && (!isSpecific(situation.context) || !isSpecific(situation.difficulty) || !isSpecific(situation.consequence))) {
@@ -34,21 +34,19 @@ export function reviewWithRules(passport) {
             recommendation: 'Отметьте область влияния или опишите последствия в комментарии.',
         }));
     }
-    if (text(hypothesis.if) || text(hypothesis.then) || text(hypothesis.because)) {
-        if (!isSpecific(hypothesis.if) || !isSpecific(hypothesis.then) || !isSpecific(hypothesis.because)) {
-            issues.push(issue({
-                id: 'hypothesis-specificity', step: 4, title: 'Что предлагается сделать',
-                description: 'Гипотеза сформулирована слишком общо — связь между действием, результатом и причиной не читается.',
-                recommendation: 'Уточните, что именно изменится для пользователя и почему это даст ожидаемый результат.',
-            }));
-        }
+    if (hypotheses.some(hypothesis => !isSpecific(hypothesis.if) || !isSpecific(hypothesis.then) || !isSpecific(hypothesis.because))) {
+        issues.push(issue({
+            id: 'hypothesis-specificity', step: 4, title: 'Что предлагается сделать',
+            description: 'Хотя бы одна гипотеза сформулирована слишком общо — связь между действием, результатом и причиной не читается.',
+            recommendation: 'Уточните, что именно изменится для пользователя и почему это даст ожидаемый результат.',
+        }));
     }
-    const completeMetrics = metrics.filter(metric => text(metric.name) && text(metric.current) && text(metric.target));
+    const completeMetrics = metrics.filter(metric => text(metric.name) && text(metric.current) && text(metric.unit) && text(metric.currentDate) && text(metric.target));
     if (!completeMetrics.length || completeMetrics.some(metric => !isSpecific(metric.name, 2) || !isSpecific(metric.target, 1))) {
         issues.push(issue({
             id: 'metrics-quality', step: 5, title: 'Как оценим результат',
             description: 'Сформулируйте метрики так, чтобы по ним можно было однозначно оценить результат.',
-            recommendation: 'Укажите название метрики, её текущее и целевое значение.',
+            recommendation: 'Укажите название метрики, текущее и целевое значения, единицу измерения и дату текущего значения.',
         }));
     }
     return issues;

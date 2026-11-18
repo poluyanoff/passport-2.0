@@ -31,6 +31,8 @@ flowchart LR
 
 Форма собирает один payload в `reviewPayload()` из `screens/main.js`. Этот формат является контрактом с `POST /api/review`.
 
+В `passport.hypotheses` передаётся массив гипотез с полями `if`, `then` и `because`; пустой массив допустим. Каждый объект в `passport.metrics` содержит `name`, `current`, `unit`, `currentDate` и `target`. Формат должны синхронно понимать frontend, `shared/review-rules.mjs`, Node API и Worker API.
+
 ### Сценарий пользователя
 
 1. Восемь шагов формы проверяют обязательные поля на клиенте.

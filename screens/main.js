@@ -20,8 +20,81 @@ const SOURCES = ['Аналитика, выгрузка', 'Интервью с п
 const OPINION_SOURCE = SOURCES[SOURCES.length - 1];
 const BUSINESS_IMPACTS = ['Финансовые показатели', 'MAU, Retention', 'Репутация', 'ФОТ'];
 const REFERENCES = ['Прямые конкуренты', 'Косвенные конкуренты', 'Аналоги внутри компании', 'Аналоги внутри отдела'];
-const FREQUENCIES = ['Каждый день', 'Несколько раз в неделю', 'Несколько раз в месяц', 'Реже одного раза в месяц', 'Разово'];
+const FREQUENCIES = ['Несколько раз в день', 'Раз в день', 'Несколько раз в неделю', 'Несколько раз в месяц', 'Раз в месяц', 'Раз в квартал', 'Разово'];
 const DATE_TYPES = ['Старт разработки', 'Передача в разработку', 'Демонстрация бизнесу', 'Запуск в прод'];
+const METRIC_UNITS = ['%', '₽', 'шт.', 'обращения', 'заявки'];
+const MAX_HYPOTHESES = 10;
+let entitySequence = 0;
+
+function createEntityId(prefix) {
+    entitySequence += 1;
+    return `${prefix}-${Date.now()}-${entitySequence}`;
+}
+
+function createHypothesis() {
+    return {id: createEntityId('hypothesis'), if: '', then: '', because: ''};
+}
+
+function createMetric() {
+    return {name: '', current: '', unit: '', currentDate: null, target: ''};
+}
+
+function parseMetricValue(value) {
+    const normalized = String(value || '').trim().replace(',', '.');
+    return /^-?\d+(?:\.\d+)?$/.test(normalized) ? Number(normalized) : null;
+}
+
+function formatMetricValue(value) {
+    return new Intl.NumberFormat('ru-RU', {maximumFractionDigits: 2}).format(value);
+}
+
+function metricDelta(metric) {
+    const current = parseMetricValue(metric.current);
+    const target = parseMetricValue(metric.target);
+    if (current === null || target === null) return null;
+
+    const difference = target - current;
+    const sign = difference > 0 ? '+' : '';
+    const absoluteUnit = metric.unit === '%' ? ' п.п.' : metric.unit ? ` ${metric.unit}` : '';
+    const absolute = `${sign}${formatMetricValue(difference)}${absoluteUnit}`;
+    if (current === 0) return `${formatMetricValue(current)} → ${formatMetricValue(target)}${metric.unit ? ` ${metric.unit}` : ''} (${absolute})`;
+
+    const relative = difference / Math.abs(current);
+    const multiplier = target / current;
+    const relativeSign = relative > 0 ? '+' : '';
+    return `${formatMetricValue(current)} → ${formatMetricValue(target)}${metric.unit ? ` ${metric.unit}` : ''} (${absolute}, ${relativeSign}${formatMetricValue(relative * 100)}%, ×${formatMetricValue(multiplier)})`;
+}
+
+function useEntityCollection(createEntity, limit) {
+    const [items, setItems] = React.useState([]);
+    const [draft, setDraft] = React.useState(null);
+
+    function add() {
+        if (items.length >= limit) return false;
+        setDraft(createEntity());
+        return true;
+    }
+
+    function edit(item) {
+        setDraft({...item});
+    }
+
+    function save(item) {
+        setItems(current => current.some(currentItem => currentItem.id === item.id)
+            ? current.map(currentItem => currentItem.id === item.id ? item : currentItem)
+            : [...current, item],
+        );
+        setDraft(null);
+    }
+
+    function remove(id) {
+        setItems(current => current.filter(item => item.id !== id));
+        setDraft(null);
+    }
+
+    return {items, draft, add, edit, save, remove, cancel: () => setDraft(null), reset: () => { setItems([]); setDraft(null); }};
+}
+
 function PassportTextarea({label, labelOutside, value, onChange, disabled, invalid, error, placeholder, rows = 3, compact = false}) {
     return h(T.Textarea, {
         className: compact ? 'passport-textarea passport-textarea--compact' : 'passport-textarea',
@@ -49,8 +122,9 @@ function Passport({platform}) {
     const [sourceLinks, setSourceLinks] = React.useState('');
     const [businessComment, setBusinessComment] = React.useState('');
     const [businessImpacts, setBusinessImpacts] = React.useState([]);
-    const [hypothesis, setHypothesis] = React.useState({if: '', then: '', because: ''});
-    const [metrics, setMetrics] = React.useState([{name: '', current: '', target: ''}]);
+    const hypotheses = useEntityCollection(createHypothesis, MAX_HYPOTHESES);
+    const [showHypothesisError, setShowHypothesisError] = React.useState(false);
+    const [metrics, setMetrics] = React.useState([createMetric()]);
     const [references, setReferences] = React.useState([]);
     const [referenceDetails, setReferenceDetails] = React.useState({});
     const [startDate, setStartDate] = React.useState(null);
@@ -95,6 +169,31 @@ function Passport({platform}) {
         setReferenceDetails(current => ({...current, [reference]: {...current[reference], [key]: value}}));
     }
 
+    function openHypothesisEditor() {
+        if (!hypotheses.add()) T.showToast({label: `Можно добавить не больше ${MAX_HYPOTHESES} гипотез`, icon: 'fixed-color/alert-negative'});
+        setShowHypothesisError(false);
+    }
+
+    function editHypothesis(hypothesis) {
+        hypotheses.edit(hypothesis);
+        setShowHypothesisError(false);
+    }
+
+    function updateHypothesis(key, value) {
+        hypotheses.draft && hypotheses.edit({...hypotheses.draft, [key]: value});
+    }
+
+    function saveHypothesis() {
+        const hypothesis = hypotheses.draft;
+        if (!hypothesis) return;
+        if (!hypothesis.if.trim() || !hypothesis.then.trim() || !hypothesis.because.trim()) {
+            setShowHypothesisError(true);
+            return;
+        }
+        hypotheses.save(hypothesis);
+        setShowHypothesisError(false);
+    }
+
     function validationError() {
         if (step === 0) {
             if (!segment.name.trim()) return {field: true};
@@ -103,11 +202,8 @@ function Passport({platform}) {
         if (step === 1 && !businessInitiative && (!context.trim() || !difficulty.trim() || !consequence.trim() || !frequency)) return {field: true};
         if (step === 2 && !sources.length) return {toast: 'Выберите хотя бы один источник данных'};
         if (step === 3 && !businessImpacts.length && !businessComment.trim()) return {toast: 'Отметьте влияние на бизнес или добавьте комментарий'};
-        if (step === 4) {
-            if (!hypothesis.if.trim() || !hypothesis.then.trim() || !hypothesis.because.trim()) return {field: true};
-        }
         if (step === 5) {
-            if (!metrics.some(metric => metric.name.trim() && metric.current.trim() && metric.target.trim())) return {toast: 'Добавьте хотя бы одну метрику: название, текущее и целевое значение'};
+            if (!metrics.some(metric => metric.name.trim() && metric.current.trim() && metric.unit.trim() && metric.currentDate && metric.target.trim())) return {toast: 'Добавьте хотя бы одну метрику: название, текущее значение, единицу измерения, дату и цель'};
         }
         if (step === 7 && (!startDate || startDate < minStartDate || !dateType.trim())) return {field: true};
         return null;
@@ -152,7 +248,7 @@ function Passport({platform}) {
                 situation: {context, difficulty, consequence, frequency, businessInitiative},
                 sources: {items: sources, links: sourceLinks},
                 business: {impacts: businessImpacts, comment: businessComment},
-                hypothesis,
+                hypotheses: hypotheses.items.map(({id, ...hypothesis}) => hypothesis),
                 metrics,
                 references: references.map(reference => ({name: reference, ...referenceDetails[reference]})),
                 deadline: {date: startDate, type: dateType},
@@ -169,7 +265,13 @@ function Passport({platform}) {
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(reviewPayload()),
             });
-            const data = await response.json();
+            const source = await response.text();
+            let data;
+            try {
+                data = JSON.parse(source);
+            } catch {
+                throw new Error('Сервер вернул ответ в неверном формате. Откройте приложение через npm run dev.');
+            }
             if (!response.ok) throw new Error(data.error || 'Не удалось проверить описание');
             setReviewIssues(Array.isArray(data.issues) ? data.issues : []);
             if (data.warning) T.showToast({label: data.warning, icon: 'fixed-color/alert-negative'});
@@ -186,7 +288,7 @@ function Passport({platform}) {
         setStep(0); setShowError(false); setSent(false); setChecking(false); setCheckingProgress(0); setReview(false); setReviewStep(null); setReviewIssues([]);
         setSegment({name: '', count: '', share: ''}); setContext(''); setDifficulty(''); setConsequence(''); setFrequency(''); setBusinessInitiative(false);
         setSources([]); setSourceLinks(''); setBusinessComment(''); setBusinessImpacts([]);
-        setHypothesis({if: '', then: '', because: ''}); setMetrics([{name: '', current: '', target: ''}]);
+        hypotheses.reset(); setShowHypothesisError(false); setMetrics([createMetric()]);
         setReferences([]); setReferenceDetails({}); setStartDate(null); setDateType('');
     }
 
@@ -200,16 +302,16 @@ function Passport({platform}) {
         )
         : step === 1
             ? h('div', {className: 'passport-fields'},
-                h(T.Checkbox, {label: 'Явной проблемы нет, есть инициатива бизнеса', checked: businessInitiative, onChange: setBusinessInitiative}),
                 h(T.Input, {label: 'В каком контексте', value: context, onChange: setContext, disabled: businessInitiative, invalid: showError && !businessInitiative && !context.trim(), error: showError && !businessInitiative && !context.trim() ? 'Опишите контекст' : undefined, placeholder: 'При ежедневной проверке финансовых показателей'}),
                 h(PassportTextarea, {label: 'С каким затруднением сталкивается', value: difficulty, onChange: setDifficulty, disabled: businessInitiative, invalid: showError && !businessInitiative && !difficulty.trim(), error: showError && !businessInitiative && !difficulty.trim() ? 'Опишите затруднение' : undefined, placeholder: 'Вынужден вручную сравнивать данные за разные периоды', compact: true}),
                 h(PassportTextarea, {label: 'К чему это приводит', value: consequence, onChange: setConsequence, disabled: businessInitiative, invalid: showError && !businessInitiative && !consequence.trim(), error: showError && !businessInitiative && !consequence.trim() ? 'Опишите последствие' : undefined, placeholder: 'Тратит больше времени и может поздно заметить снижение прибыли', compact: true}),
                 h(T.Select, {label: 'Как часто это происходит', value: frequency, onChange: setFrequency, disabled: businessInitiative, invalid: showError && !businessInitiative && !frequency, error: showError && !businessInitiative && !frequency ? 'Выберите частоту' : undefined, items: FREQUENCIES, placeholder: 'Выберите частоту'}),
+                h(T.Checkbox, {label: 'Явных проблем у пользователей нет. Задача — инициатива бизнеса', checked: businessInitiative, onChange: setBusinessInitiative}),
             )
         : step === 2
             ? h('div', {className: 'passport-fields'},
                 h('div', {className: 'passport-choices'}, SOURCES.map(source => h(T.Checkbox, {key: source, label: source, checked: sources.includes(source), disabled: sources.includes(OPINION_SOURCE) && source !== OPINION_SOURCE, onChange: checked => toggleSource(source, checked)}))),
-                sources.some(source => source !== OPINION_SOURCE) && h(PassportTextarea, {label: 'Примеры и ссылки', value: sourceLinks, onChange: setSourceLinks, placeholder: 'Ссылки на выгрузки, интервью, исследования или результаты тестов'}),
+                h(PassportTextarea, {label: 'Комментарии и ссылки на артефакты', value: sourceLinks, onChange: setSourceLinks, placeholder: 'Ссылки на выгрузки, интервью, исследования или результаты тестов'}),
             )
             : step === 3
                 ? h('div', {className: 'passport-fields'},
@@ -217,10 +319,16 @@ function Passport({platform}) {
                     h(PassportTextarea, {label: 'Комментарий', value: businessComment, onChange: setBusinessComment, placeholder: 'Опишите, как проблема влияет на бизнес: потери, обращения, затраты или другие последствия'}),
                 )
                 : step === 4
-                    ? h('div', {className: 'passport-fields'},
-                        h(PassportTextarea, {label: 'Если', value: hypothesis.if, onChange: value => setHypothesis(current => ({...current, if: value})), invalid: showError && !hypothesis.if.trim(), error: showError && !hypothesis.if.trim() ? 'Опишите действие' : undefined, placeholder: 'Добавим в отчёт сравнение показателей за разные периоды', rows: 2, compact: true}),
-                        h(PassportTextarea, {label: 'То', value: hypothesis.then, onChange: value => setHypothesis(current => ({...current, then: value})), invalid: showError && !hypothesis.then.trim(), error: showError && !hypothesis.then.trim() ? 'Опишите ожидаемый результат' : undefined, placeholder: 'Пользователь быстрее заметит изменение показателей', rows: 2, compact: true}),
-                        h(PassportTextarea, {label: 'Потому что', value: hypothesis.because, onChange: value => setHypothesis(current => ({...current, because: value})), invalid: showError && !hypothesis.because.trim(), error: showError && !hypothesis.because.trim() ? 'Объясните причину' : undefined, placeholder: 'Не придётся вручную собирать и сравнивать данные', rows: 2, compact: true}),
+                    ? h('div', {className: 'passport-hypotheses'},
+                        h('button', {type: 'button', className: 'passport-add-metric passport-add-hypothesis', onClick: openHypothesisEditor},
+                            h('span', {className: 'passport-add-metric__icon', 'aria-hidden': true}, h(T.Icon, {name: 'small-pragmatic/plus', size: 24})),
+                            h('span', {className: 'tui-ui-m'}, 'Добавить гипотезу'),
+                        ),
+                        h('div', {className: 'passport-hypothesis-list'}, hypotheses.items.map((hypothesis, index) => h(T.Cell, {
+                            key: hypothesis.id, avatar: 'lightbulb', avatarTone: 'accent-2', title: `Гипотеза ${index + 1}`,
+                            description: [hypothesis.if, hypothesis.then, hypothesis.because].join(' → '),
+                            onClick: () => editHypothesis(hypothesis),
+                        }))),
                     )
                     : step === 5
                         ? h('div', {className: 'passport-fields'},
@@ -228,13 +336,20 @@ function Passport({platform}) {
                             h('div', {className: 'passport-metric-row'},
                                 h('div', {className: 'passport-metric-fields'},
                                     h(T.Input, {label: 'Ключевая метрика', value: metric.name, onChange: value => updateMetric(index, 'name', value)}),
-                                    h(T.Input, {label: 'Сейчас', value: metric.current, onChange: value => updateMetric(index, 'current', value)}),
-                                    h(T.Input, {label: 'Цель', value: metric.target, onChange: value => updateMetric(index, 'target', value)}),
+                                    h('div', {className: 'passport-metric-details'},
+                                        h(T.Input, {label: 'Текущее значение', value: metric.current, onChange: value => updateMetric(index, 'current', value), placeholder: '10'}),
+                                        h(T.Combobox, {label: 'Единица измерения', value: metric.unit, onChange: value => updateMetric(index, 'unit', String(value || '')), items: METRIC_UNITS, placeholder: 'Выберите или впишите'}),
+                                        h(T.InputDate, {label: 'Дата', value: metric.currentDate, onChange: value => updateMetric(index, 'currentDate', value)}),
+                                        h('div', {className: 'passport-metric-target'},
+                                            h(T.Input, {label: 'Целевое значение', value: metric.target, onChange: value => updateMetric(index, 'target', value), placeholder: '13'}),
+                                            metricDelta(metric) && h('div', {className: 'passport-metric-delta tui-ui-s'}, metricDelta(metric)),
+                                        ),
+                                    ),
                                 ),
                                 metrics.length > 1 && h(T.Button, {appearance: 'flat', size: 'm', icon: 'small-pragmatic/trash', title: 'Удалить метрику', ariaLabel: 'Удалить метрику', onClick: () => setMetrics(current => current.filter((_, metricIndex) => metricIndex !== index))}),
                             ),
                         ))),
-                        h('button', {type: 'button', className: 'passport-add-metric', onClick: () => setMetrics(current => [...current, {name: '', current: '', target: ''}])},
+                        h('button', {type: 'button', className: 'passport-add-metric', onClick: () => setMetrics(current => [...current, createMetric()])},
                             h('span', {className: 'passport-add-metric__icon', 'aria-hidden': true}, h(T.Icon, {name: 'small-pragmatic/plus', size: 24})),
                             h('span', {className: 'tui-ui-m'}, 'Добавить метрику'),
                         ),
@@ -262,8 +377,8 @@ function Passport({platform}) {
             frequency ? `\nЧастота: ${frequency}` : '',
             '', '## Подтверждение', sources.join(', '), sourceLinks,
             '', '## Влияние на бизнес', businessImpacts.join(', '), businessComment,
-            '', '## Гипотеза', [hypothesis.if, hypothesis.then, hypothesis.because].filter(Boolean).join(' → '),
-            '', '## Метрики', ...metrics.map(metric => [metric.name, metric.current, metric.target].filter(Boolean).join(' — ')),
+            ...(hypotheses.items.length ? ['', '## Гипотезы', ...hypotheses.items.map((hypothesis, index) => `${index + 1}. ${[hypothesis.if, hypothesis.then, hypothesis.because].filter(Boolean).join(' → ')}`)] : []),
+            '', '## Метрики', ...metrics.map(metric => [metric.name, metric.current, metric.unit, metric.currentDate, metric.target].filter(Boolean).join(' — ')),
             '', '## Срок', [dateType, startDate].filter(Boolean).join(' — '),
         ].filter(Boolean).join('\n');
     }
@@ -289,17 +404,34 @@ function Passport({platform}) {
 
     if (sent) return h(T.Dialog, {open: true, inline: true, fullscreen: true, closeButton: false, platform: mobile ? 'mobile' : undefined, system: mobile ? 'ios' : undefined}, h(T.BlockStatus, {type: 'fullscreen', kind: 'result', image: 'check', title: 'Задача описана', text: 'Вставьте описание в эпик в поле Description', actions: [{label: 'Скопировать описание', icon: 'small-pragmatic/copy', onClick: copyEpicDescription}, {label: 'Заполнить заново', appearance: 'secondary', onClick: reset}]}));
 
-    return h(T.Dialog, {
+    const isExistingHypothesis = hypotheses.draft && hypotheses.items.some(hypothesis => hypothesis.id === hypotheses.draft.id);
+    const closeHypothesisEditor = () => { hypotheses.cancel(); setShowHypothesisError(false); };
+    const hypothesisEditor = hypotheses.draft && h(T.Dialog, {
+        open: true, size: 'l', title: 'Гипотеза', description: 'Какое решение может решить проблему',
+        onClose: closeHypothesisEditor,
+        actions: [
+            !isExistingHypothesis && {label: 'Отмена', appearance: 'flat', onClick: closeHypothesisEditor},
+            isExistingHypothesis && {label: 'Удалить', appearance: 'flat-destructive', onClick: () => { hypotheses.remove(hypotheses.draft.id); setShowHypothesisError(false); }},
+            {label: 'Сохранить', onClick: saveHypothesis},
+        ].filter(Boolean),
+    }, h('div', {className: 'passport-fields'},
+        h(PassportTextarea, {label: 'Если', value: hypotheses.draft.if, onChange: value => updateHypothesis('if', value), invalid: showHypothesisError && !hypotheses.draft.if.trim(), error: showHypothesisError && !hypotheses.draft.if.trim() ? 'Опишите действие' : undefined, placeholder: 'Добавим в отчёт сравнение показателей за разные периоды', rows: 2, compact: true}),
+        h(PassportTextarea, {label: 'То', value: hypotheses.draft.then, onChange: value => updateHypothesis('then', value), invalid: showHypothesisError && !hypotheses.draft.then.trim(), error: showHypothesisError && !hypotheses.draft.then.trim() ? 'Опишите ожидаемый результат' : undefined, placeholder: 'Пользователь быстрее заметит изменение показателей', rows: 2, compact: true}),
+        h(PassportTextarea, {label: 'Потому что', value: hypotheses.draft.because, onChange: value => updateHypothesis('because', value), invalid: showHypothesisError && !hypotheses.draft.because.trim(), error: showHypothesisError && !hypotheses.draft.because.trim() ? 'Объясните причину' : undefined, placeholder: 'Не придётся вручную собирать и сравнивать данные', rows: 2, compact: true}),
+    ));
+
+    return h(React.Fragment, null, h(T.Dialog, {
         open: true, inline: true, fullscreen: true, closeButton: false,
         platform: mobile ? 'mobile' : undefined, system: mobile ? 'ios' : undefined,
-        title, description, progress: (step + 1) / STEPS.length, step, stepDirection: 'forward',
+        title, description,
+        progress: (step + 1) / STEPS.length, step, stepDirection: 'forward',
         onBack: step ? () => { setShowError(false); setStep(current => current - 1); } : undefined,
         stickyFooter: true,
         actions: [
             (step === 4 || step === 6) && {label: 'Пропустить', appearance: 'flat', onClick: skip},
-            {label: reviewStep !== null ? 'Готово' : step === STEPS.length - 1 ? 'Отправить дизайнеру' : 'Дальше', onClick: next},
+            {label: reviewStep !== null ? 'Готово' : step === STEPS.length - 1 ? 'Проверить задачу' : 'Дальше', onClick: next},
         ].filter(Boolean),
-    }, fields);
+    }, fields), hypothesisEditor);
 }
 
 export function Mobile() { return h(Passport, {platform: 'mobile'}); }

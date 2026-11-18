@@ -4,7 +4,7 @@
   "passport": {
     "situation": {"context": "", "difficulty": "", "consequence": "", "businessInitiative": true},
     "business": {"impacts": ["Репутация"], "comment": ""},
-    "hypothesis": {"if": "", "then": "", "because": ""},
-    "metrics": [{"name": "NPS", "current": "45", "target": "50"}]
+    "hypotheses": [],
+    "metrics": [{"name": "NPS", "current": "45", "unit": "%", "currentDate": "2026-11-18", "target": "50"}]
   }
 }

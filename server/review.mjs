@@ -1,6 +1,6 @@
 const MOCK_DELAY_MS = 5000;
 
-export const REVIEW_RULES_VERSION = '2026-11-16';
+export const REVIEW_RULES_VERSION = '2026-11-18-metrics';
 
 import {reviewWithRules} from '../shared/review-rules.mjs';
 

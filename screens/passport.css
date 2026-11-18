@@ -20,7 +20,9 @@
 
 .passport-choices,
 .passport-metrics,
-.passport-reference {
+.passport-reference,
+.passport-hypotheses,
+.passport-hypothesis-list {
     display: grid;
     gap: 16px;
 }
@@ -37,11 +39,28 @@
     align-items: center;
 }
 
-.passport-metric-fields,
 .passport-reference-fields {
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.passport-metric-fields {
+    display: grid;
     gap: 12px;
+}
+
+.passport-metric-details {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.passport-metric-target {
+    display: grid;
+    gap: 4px;
+}
+
+.passport-metric-delta {
+    color: var(--tui-text-secondary);
 }
 
 .passport-reference-fields {
@@ -113,6 +132,15 @@
     color: var(--tui-text-action);
 }
 
+.passport-add-hypothesis .passport-add-metric__icon {
+    width: 40px;
+    height: 40px;
+}
+
+.passport-hypothesis-list {
+    display: contents;
+}
+
 .passport-add-metric:hover .passport-add-metric__icon {
     background: var(--tui-background-neutral-1-hover);
 }
@@ -126,7 +154,7 @@
 
 @media (max-width: 720px) {
     .passport-segment-fields,
-    .passport-metric-fields,
+    .passport-metric-details,
     .passport-reference-fields {
         grid-template-columns: 1fr;
     }
