@@ -105,7 +105,7 @@ function useEntityCollection(createEntity, limit = Infinity) {
 function PassportTextarea({label, labelOutside, value, onChange, disabled, invalid, error, placeholder, rows = 3, compact = false}) {
     return h(T.Textarea, {
         className: compact ? 'passport-textarea passport-textarea--compact' : 'passport-textarea',
-        label, labelOutside, labelOff: true, value, onChange, disabled, invalid, error, placeholder: label || placeholder, rows,
+        label, labelOutside, labelOff: true, value, onChange, disabled, invalid, error, placeholder, rows,
         height: TEXTAREA_HEIGHT,
     });
 }
@@ -378,8 +378,8 @@ function Passport({platform}) {
                         ? h('div', {className: 'passport-fields'}, REFERENCES.map(reference => h('section', {className: 'passport-reference', key: reference},
                             h(T.Checkbox, {label: reference, checked: references.includes(reference), onChange: checked => toggle(setReferences, reference, checked)}),
                             references.includes(reference) && h('div', {className: 'passport-reference-fields'},
-                                h(T.Input, {label: 'Ссылки', value: referenceDetails[reference]?.links || '', onChange: value => updateReference(reference, 'links', value)}),
-                                h(T.Input, {label: 'Что берем и почему', value: referenceDetails[reference]?.take || '', onChange: value => updateReference(reference, 'take', value)}),
+                                h(T.Input, {label: 'Ссылки', value: referenceDetails[reference]?.links || '', onChange: value => updateReference(reference, 'links', value), placeholder: 'Ссылки на похожие решения'}),
+                                h(T.Input, {label: 'Что берем и почему', value: referenceDetails[reference]?.take || '', onChange: value => updateReference(reference, 'take', value), placeholder: 'Что используем в своей задаче'}),
                             ),
                         )))
                         : h('div', {className: 'passport-fields passport-date'}, h('div', {className: 'passport-date-fields'},
@@ -474,7 +474,7 @@ function Passport({platform}) {
             {label: 'Сохранить', onClick: saveMetric},
         ].filter(Boolean),
     }, h('div', {className: 'passport-metric-fields'},
-        h(T.Input, {label: 'Ключевая метрика', value: metrics.draft.name, onChange: value => updateMetric('name', value), invalid: showMetricError && !metrics.draft.name.trim(), error: showMetricError && !metrics.draft.name.trim() ? 'Укажите метрику' : undefined}),
+        h(T.Input, {label: 'Ключевая метрика', value: metrics.draft.name, onChange: value => updateMetric('name', value), invalid: showMetricError && !metrics.draft.name.trim(), error: showMetricError && !metrics.draft.name.trim() ? 'Укажите метрику' : undefined, placeholder: 'Конверсия в покупку'}),
         h('div', {className: 'passport-metric-details'},
             h(T.Input, {label: 'Текущее значение', value: metrics.draft.current, onChange: value => updateMetric('current', value), invalid: showMetricError && !metrics.draft.current.trim(), error: showMetricError && !metrics.draft.current.trim() ? 'Укажите текущее значение' : undefined, placeholder: '10'}),
             h(T.Combobox, {label: 'Единица измерения', value: metrics.draft.unit, onChange: value => updateMetric('unit', String(value || '')), items: METRIC_UNITS, invalid: showMetricError && !metrics.draft.unit.trim(), error: showMetricError && !metrics.draft.unit.trim() ? 'Укажите единицу измерения' : undefined, placeholder: 'Выберите или впишите'}),
