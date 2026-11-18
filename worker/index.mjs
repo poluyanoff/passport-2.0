@@ -1,5 +1,5 @@
 import rules from '../ai/review-rules.json';
-import {reviewWithRules} from '../shared/review-rules.mjs';
+import {FORMAL_REVIEW_WARNING, reviewWithRules} from '../shared/review-rules.mjs';
 
 const responseSchema = {
     type: 'object', additionalProperties: false, required: ['issues'], properties: {
@@ -92,14 +92,19 @@ export default {
         }
         if (!payload?.passport || typeof payload.passport !== 'object') return json({error: 'Передайте данные паспорта.'}, 400);
 
+        const formalIssues = reviewWithRules(payload.passport);
+        if (formalIssues.length) {
+            return json({status: 'completed', provider: 'rules', rulesVersion: rules.version, issues: formalIssues, warning: FORMAL_REVIEW_WARNING}, 200, {'X-RateLimit-Remaining': String(quota.remaining)});
+        }
+
         if (env.AI_PROVIDER === 'openai') {
             try {
                 const issues = await reviewWithOpenAI(payload.passport, env);
                 return json({status: 'completed', provider: 'openai', rulesVersion: rules.version, issues}, 200, {'X-RateLimit-Remaining': String(quota.remaining)});
             } catch {
-                return json({status: 'fallback', provider: 'rules', rulesVersion: rules.version, issues: reviewWithRules(payload.passport), warning: 'AI-проверка временно недоступна. Показаны предварительные рекомендации.'}, 200, {'X-RateLimit-Remaining': String(quota.remaining)});
+                return json({status: 'fallback', provider: 'rules', rulesVersion: rules.version, issues: formalIssues, warning: 'AI-проверка временно недоступна. Формальные признаки полей пройдены; содержательная проверка не выполнена.'}, 200, {'X-RateLimit-Remaining': String(quota.remaining)});
             }
         }
-        return json({status: 'completed', provider: 'mock', rulesVersion: rules.version, issues: reviewWithRules(payload.passport)}, 200, {'X-RateLimit-Remaining': String(quota.remaining)});
+        return json({status: 'completed', provider: 'mock', rulesVersion: rules.version, issues: formalIssues}, 200, {'X-RateLimit-Remaining': String(quota.remaining)});
     },
 };

@@ -1,8 +1,8 @@
+import {FORMAL_REVIEW_WARNING, reviewWithRules} from '../shared/review-rules.mjs';
+
 const MOCK_DELAY_MS = 5000;
 
-export const REVIEW_RULES_VERSION = '2026-11-18-metrics-optional-date';
-
-import {reviewWithRules} from '../shared/review-rules.mjs';
+export const REVIEW_RULES_VERSION = '2026-11-18-semantic-links';
 
 function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -20,6 +20,14 @@ export async function reviewPassport(payload, {delayMs = MOCK_DELAY_MS} = {}) {
     const error = validateReviewRequest(payload);
     if (error) return {ok: false, status: 400, body: {error}};
 
+    const formalIssues = reviewWithRules(payload.passport);
+    if (formalIssues.length) {
+        return {ok: true, status: 200, body: {
+            status: 'completed', provider: 'rules', rulesVersion: REVIEW_RULES_VERSION,
+            issues: formalIssues, warning: FORMAL_REVIEW_WARNING,
+        }};
+    }
+
     if (process.env.AI_PROVIDER === 'openai') {
         try {
             const {reviewWithOpenAI} = await import('./openai.mjs');
@@ -31,7 +39,7 @@ export async function reviewPassport(payload, {delayMs = MOCK_DELAY_MS} = {}) {
                 status: 200,
                 body: {
                     status: 'fallback', provider: 'rules', rulesVersion: REVIEW_RULES_VERSION,
-                    issues: reviewWithRules(payload.passport),
+                    issues: formalIssues,
                     warning: 'AI-проверка временно недоступна. Показаны предварительные рекомендации.',
                 },
             };
@@ -47,7 +55,7 @@ export async function reviewPassport(payload, {delayMs = MOCK_DELAY_MS} = {}) {
             status: 'completed',
             provider: 'mock',
             rulesVersion: REVIEW_RULES_VERSION,
-            issues: reviewWithRules(payload.passport),
+            issues: formalIssues,
         },
     };
 }

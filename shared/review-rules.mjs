@@ -1,5 +1,7 @@
 const GENERIC_VALUES = ['нет', 'не знаю', 'n/a', 'na', 'тест', 'текст', 'пример', 'что-то', 'что то'];
 
+export const FORMAL_REVIEW_WARNING = 'AI-проверка пока не запускалась: сначала исправьте формальные признаки полей. После этого сервис проверит смысл описания.';
+
 function text(value) {
     return String(value || '').trim();
 }
@@ -22,31 +24,31 @@ export function reviewWithRules(passport) {
 
     if (!situation.businessInitiative && (!isSpecific(situation.context) || !isSpecific(situation.difficulty) || !isSpecific(situation.consequence))) {
         issues.push(issue({
-            id: 'situation-specificity', step: 1, title: 'Что происходит',
-            description: 'Добавьте больше конкретики: в каком контексте возникает проблема, с каким затруднением сталкивается человек и к чему это приводит.',
-            recommendation: 'Опишите ситуацию через действие пользователя, препятствие и последствие.',
+            id: 'situation-specificity', step: 1, title: 'Нужна базовая детализация ситуации',
+            description: 'Формальная проверка не подтвердила заполненность одного или нескольких полей: текст короче 12 символов либо похож на шаблонный ответ. Смысл ситуации на этом этапе не анализировался.',
+            recommendation: 'Дополните контекст, затруднение и последствие конкретными формулировками — затем запустится AI-проверка смысла.',
         }));
     }
     if (!business.impacts?.length && !isSpecific(business.comment)) {
         issues.push(issue({
-            id: 'business-impact', step: 3, title: 'На что влияет в бизнесе',
-            description: 'Неясно, на что именно влияет проблема для бизнеса.',
-            recommendation: 'Отметьте область влияния или опишите последствия в комментарии.',
+            id: 'business-impact', step: 3, title: 'Нужно обозначить влияние на бизнес',
+            description: 'Формальная проверка не нашла выбранную область влияния или достаточно развёрнутый комментарий. Содержательность влияния пока не анализировалась.',
+            recommendation: 'Отметьте область влияния либо добавьте комментарий длиной не менее 12 символов — затем запустится AI-проверка смысла.',
         }));
     }
     if (hypotheses.some(hypothesis => !isSpecific(hypothesis.if) || !isSpecific(hypothesis.then) || !isSpecific(hypothesis.because))) {
         issues.push(issue({
-            id: 'hypothesis-specificity', step: 4, title: 'Что предлагается сделать',
-            description: 'Хотя бы одна гипотеза сформулирована слишком общо — связь между действием, результатом и причиной не читается.',
-            recommendation: 'Уточните, что именно изменится для пользователя и почему это даст ожидаемый результат.',
+            id: 'hypothesis-specificity', step: 4, title: 'Нужно дополнить гипотезу',
+            description: 'Формальная проверка обнаружила в одной или нескольких гипотезах короткое или шаблонное поле «Если», «То» или «Потому что». Причинно-следственная связь пока не анализировалась.',
+            recommendation: 'Дополните все части гипотезы текстом не менее 12 символов — затем AI проверит логику связи.',
         }));
     }
     const completeMetrics = metrics.filter(metric => text(metric.name) && text(metric.current) && text(metric.unit) && text(metric.target));
     if (!completeMetrics.length || completeMetrics.some(metric => !isSpecific(metric.name, 2) || !isSpecific(metric.target, 1))) {
         issues.push(issue({
-            id: 'metrics-quality', step: 5, title: 'Как оценим результат',
-            description: 'Сформулируйте метрики так, чтобы по ним можно было однозначно оценить результат.',
-            recommendation: 'Укажите название метрики, текущее и целевое значения и единицу измерения.',
+            id: 'metrics-quality', step: 5, title: 'Нужно заполнить метрику',
+            description: 'Формальная проверка не нашла полностью заполненную метрику либо обнаружила короткое или шаблонное название и целевое значение. Качество метрики пока не анализировалось.',
+            recommendation: 'Укажите название, текущее и целевое значения и единицу измерения — затем запустится AI-проверка смысла.',
         }));
     }
     return issues;
