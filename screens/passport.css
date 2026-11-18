@@ -51,7 +51,7 @@
 
 .passport-metric-details {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
 }
 
@@ -60,12 +60,42 @@
     gap: 4px;
 }
 
-.passport-metric-delta {
-    color: var(--tui-text-secondary);
+.passport-metric-target-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.passport-metric-delta-field {
+    position: relative;
+    cursor: default;
+}
+
+.passport-metric-delta-input,
+.passport-metric-delta-input * {
+    pointer-events: none;
+    cursor: default;
+    user-select: none;
+}
+
+.passport-metric-delta-input .tui-input__value {
+    caret-color: transparent;
+}
+
+.passport-metric-delta-input--loading .tui-input__value {
+    color: transparent;
+}
+
+.passport-metric-delta-value-skeleton {
+    position: absolute;
+    z-index: 1;
+    top: 29px;
+    left: 16px;
+    pointer-events: none;
 }
 
 .passport-reference-fields {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 12px;
 }
 
@@ -90,9 +120,19 @@
     max-width: 720px;
 }
 
-.passport-textarea .tui-ta__value--float {
+.passport-textarea {
+    --passport-textarea-height: 64px;
+}
+
+.passport-textarea .tui-ta__value {
     position: static !important;
-    height: 104px !important;
+    height: var(--passport-textarea-height) !important;
+    min-height: 0 !important;
+}
+
+.passport-textarea .tui-input__label {
+    height: 20px;
+    line-height: 20px;
 }
 
 .passport-add-metric {
@@ -133,9 +173,22 @@
     background: var(--tui-background-neutral-1-hover);
 }
 
+.passport-demo-action {
+    position: fixed;
+    right: 32px;
+    bottom: 32px;
+    z-index: 30;
+}
+
+.passport-demo-action .tui-tooltip-pop {
+    left: auto !important;
+    right: 0;
+}
+
 @media (max-width: 720px) {
     .passport-segment-fields,
     .passport-metric-details,
+    .passport-metric-target-row,
     .passport-reference-fields {
         grid-template-columns: 1fr;
     }
@@ -146,5 +199,10 @@
 
     .passport-metric-row {
         grid-template-columns: 1fr;
+    }
+
+    .passport-demo-action {
+        right: 16px;
+        bottom: 16px;
     }
 }

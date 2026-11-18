@@ -4,7 +4,7 @@ import {about, spec} from './flow.content.js';
 import './passport.css';
 
 const h = React.createElement;
-const TEXTAREA_HEIGHT = 104;
+const TEXTAREA_HEIGHT = 64;
 const STEPS = [
     ['problem', 'Кого касается проблема', 'Назовите сегмент и его размер'],
     ['solution', 'Что происходит', 'Опишите проблему'],
@@ -72,6 +72,40 @@ function metricRange(metric) {
     return `${formatMetricValue(current)} → ${formatMetricValue(target)}${metric.unit ? ` ${metric.unit}` : ''}`;
 }
 
+function MetricDeltaField({metric}) {
+    const key = [metric.current, metric.unit, metric.target].join('\u0000');
+    const delta = metricDelta(metric);
+    const previousKey = React.useRef(key);
+    const [calculating, setCalculating] = React.useState(false);
+    const changed = previousKey.current !== key;
+
+    React.useEffect(() => {
+        if (previousKey.current === key) return undefined;
+        previousKey.current = key;
+
+        if (!delta) {
+            setCalculating(false);
+            return undefined;
+        }
+
+        setCalculating(true);
+        const timer = window.setTimeout(() => setCalculating(false), 1000);
+        return () => window.clearTimeout(timer);
+    }, [key, delta]);
+
+    const loading = calculating || (changed && delta);
+    return h('div', {className: 'passport-metric-delta-field'},
+        h(T.Input, {
+            className: `passport-metric-delta-input${loading ? ' passport-metric-delta-input--loading' : ''}`,
+            label: 'Изменение', value: loading ? ' ' : delta || '', readOnly: true, cleaner: false,
+            accessory: h(T.Icon, {name: 'small-pragmatic/lock', size: 16}),
+            inputProps: {tabIndex: -1, 'aria-readonly': true},
+            onFocus: event => event.target.blur(),
+        }),
+        loading && h(T.Skeleton, {className: 'passport-metric-delta-value-skeleton', variant: 'rounded', width: '58%', height: 16, radius: 4}),
+    );
+}
+
 function useEntityCollection(createEntity, limit = Infinity) {
     const [items, setItems] = React.useState([]);
     const [draft, setDraft] = React.useState(null);
@@ -99,12 +133,12 @@ function useEntityCollection(createEntity, limit = Infinity) {
         setDraft(null);
     }
 
-    return {items, draft, add, edit, save, remove, cancel: () => setDraft(null), reset: () => { setItems([]); setDraft(null); }};
+    return {items, draft, add, edit, save, remove, replace: nextItems => { setItems(nextItems); setDraft(null); }, cancel: () => setDraft(null), reset: () => { setItems([]); setDraft(null); }};
 }
 
-function PassportTextarea({label, labelOutside, value, onChange, disabled, invalid, error, placeholder, rows = 3, compact = false}) {
+function PassportTextarea({label, labelOutside, value, onChange, disabled, invalid, error, placeholder, rows = 3}) {
     return h(T.Textarea, {
-        className: compact ? 'passport-textarea passport-textarea--compact' : 'passport-textarea',
+        className: 'passport-textarea',
         label, labelOutside, value, onChange, disabled, invalid, error, placeholder, rows,
         height: TEXTAREA_HEIGHT,
     });
@@ -139,6 +173,10 @@ function Passport({platform}) {
     const [dateType, setDateType] = React.useState('');
     const [, title, description] = STEPS[step];
     const mobile = platform === 'mobile';
+    const demoMode = __PASSPORT_DEMO__;
+    const [demoFilled, setDemoFilled] = React.useState(false);
+    const [demoTooltip, setDemoTooltip] = React.useState(false);
+    const demoTooltipTimer = React.useRef(null);
     const minStartDate = new Date().toISOString().slice(0, 10);
 
     React.useEffect(() => {
@@ -153,6 +191,8 @@ function Passport({platform}) {
             window.clearInterval(progressTimer);
         };
     }, [checking]);
+
+    React.useEffect(() => () => window.clearTimeout(demoTooltipTimer.current), []);
 
     function toggle(setItems, item, checked) {
         setItems(current => checked ? [...current, item] : current.filter(value => value !== item));
@@ -319,6 +359,35 @@ function Passport({platform}) {
         setSources([]); setSourceLinks(''); setBusinessComment(''); setBusinessImpacts([]);
         hypotheses.reset(); setShowHypothesisError(false); metrics.reset(); setShowMetricError(false);
         setReferences([]); setReferenceDetails({}); setStartDate(null); setDateType('');
+        setDemoFilled(false);
+    }
+
+    function fillExample() {
+        setStep(0); setShowError(false); setReview(false); setReviewStep(null); setReviewIssues([]);
+        setSegment({name: 'Новые селлеры на подключении', count: '1 000 в квартал', share: '1–5%'});
+        setContext('При подключении магазина к сервису продавец заполняет данные о компании.');
+        setDifficulty('Не понимает, какие документы нужны и где их найти.');
+        setConsequence('Откладывает подключение и обращается в поддержку.');
+        setFrequency('Несколько раз в неделю'); setBusinessInitiative(false);
+        setSources(['Аналитика, выгрузка', 'Интервью с пользователями']);
+        setSourceLinks('https://example.com/research');
+        setBusinessImpacts(['Финансовые показатели']); setBusinessComment('Сокращаем срок подключения и нагрузку на поддержку.');
+        hypotheses.replace([{...createHypothesis(), if: 'Добавим понятный список документов на каждом шаге подключения.', then: 'Продавец быстрее завершит подключение магазина.', because: 'Не придётся искать требования в справке и уточнять их в поддержке.'}]);
+        metrics.replace([{...createMetric(), name: 'Конверсия в покупку', current: '12', unit: '%', currentDate: new Date().toISOString().slice(0, 10), target: '18'}]);
+        setReferences(['Прямые конкуренты']);
+        setReferenceDetails({'Прямые конкуренты': {links: 'https://example.com/competitor', take: 'Пошаговую подачу требований и примеры документов'}});
+        setStartDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+        setDateType('Передача в разработку');
+        setDemoFilled(true);
+    }
+
+    function showDemoTooltip() {
+        demoTooltipTimer.current = window.setTimeout(() => setDemoTooltip(true), 300);
+    }
+
+    function hideDemoTooltip() {
+        window.clearTimeout(demoTooltipTimer.current);
+        setDemoTooltip(false);
     }
 
     const fields = step === 0
@@ -332,8 +401,8 @@ function Passport({platform}) {
         : step === 1
             ? h('div', {className: 'passport-fields'},
                 h(T.Input, {label: 'В каком контексте', value: context, onChange: setContext, disabled: businessInitiative, invalid: showError && !businessInitiative && !context.trim(), error: showError && !businessInitiative && !context.trim() ? 'Опишите контекст' : undefined, placeholder: 'При ежедневной проверке финансовых показателей'}),
-                h(PassportTextarea, {label: 'С каким затруднением сталкивается', value: difficulty, onChange: setDifficulty, disabled: businessInitiative, invalid: showError && !businessInitiative && !difficulty.trim(), error: showError && !businessInitiative && !difficulty.trim() ? 'Опишите затруднение' : undefined, placeholder: 'Вынужден вручную сравнивать данные за разные периоды', compact: true}),
-                h(PassportTextarea, {label: 'К чему это приводит', value: consequence, onChange: setConsequence, disabled: businessInitiative, invalid: showError && !businessInitiative && !consequence.trim(), error: showError && !businessInitiative && !consequence.trim() ? 'Опишите последствие' : undefined, placeholder: 'Тратит больше времени и может поздно заметить снижение прибыли', compact: true}),
+                h(PassportTextarea, {label: 'С каким затруднением сталкивается', value: difficulty, onChange: setDifficulty, disabled: businessInitiative, invalid: showError && !businessInitiative && !difficulty.trim(), error: showError && !businessInitiative && !difficulty.trim() ? 'Опишите затруднение' : undefined, placeholder: 'Вынужден вручную сравнивать данные за разные периоды'}),
+                h(PassportTextarea, {label: 'К чему это приводит', value: consequence, onChange: setConsequence, disabled: businessInitiative, invalid: showError && !businessInitiative && !consequence.trim(), error: showError && !businessInitiative && !consequence.trim() ? 'Опишите последствие' : undefined, placeholder: 'Тратит больше времени и может поздно заметить снижение прибыли'}),
                 h(T.Select, {label: 'Как часто это происходит', value: frequency, onChange: setFrequency, disabled: businessInitiative, invalid: showError && !businessInitiative && !frequency, error: showError && !businessInitiative && !frequency ? 'Выберите частоту' : undefined, items: FREQUENCIES, placeholder: 'Выберите частоту'}),
                 h(T.Checkbox, {label: 'Явных проблем у пользователей нет. Задача — инициатива бизнеса', checked: businessInitiative, onChange: setBusinessInitiative}),
             )
@@ -450,7 +519,7 @@ function Passport({platform}) {
     const isExistingHypothesis = hypotheses.draft && hypotheses.items.some(hypothesis => hypothesis.id === hypotheses.draft.id);
     const closeHypothesisEditor = () => { hypotheses.cancel(); setShowHypothesisError(false); };
     const hypothesisEditor = hypotheses.draft && h(T.Dialog, {
-        open: true, size: 'l', title: 'Гипотеза', description: 'Какое решение может решить проблему',
+        open: true, size: 'm', title: 'Гипотеза', description: 'Какое решение может решить проблему',
         onClose: closeHypothesisEditor,
         actions: [
             !isExistingHypothesis && {label: 'Отмена', appearance: 'flat', onClick: closeHypothesisEditor},
@@ -458,15 +527,15 @@ function Passport({platform}) {
             {label: 'Сохранить', onClick: saveHypothesis},
         ].filter(Boolean),
     }, h('div', {className: 'passport-fields'},
-        h(PassportTextarea, {label: 'Если', value: hypotheses.draft.if, onChange: value => updateHypothesis('if', value), invalid: showHypothesisError && !hypotheses.draft.if.trim(), error: showHypothesisError && !hypotheses.draft.if.trim() ? 'Опишите действие' : undefined, placeholder: 'Добавим в отчёт сравнение показателей за разные периоды', rows: 2, compact: true}),
-        h(PassportTextarea, {label: 'То', value: hypotheses.draft.then, onChange: value => updateHypothesis('then', value), invalid: showHypothesisError && !hypotheses.draft.then.trim(), error: showHypothesisError && !hypotheses.draft.then.trim() ? 'Опишите ожидаемый результат' : undefined, placeholder: 'Пользователь быстрее заметит изменение показателей', rows: 2, compact: true}),
-        h(PassportTextarea, {label: 'Потому что', value: hypotheses.draft.because, onChange: value => updateHypothesis('because', value), invalid: showHypothesisError && !hypotheses.draft.because.trim(), error: showHypothesisError && !hypotheses.draft.because.trim() ? 'Объясните причину' : undefined, placeholder: 'Не придётся вручную собирать и сравнивать данные', rows: 2, compact: true}),
+        h(PassportTextarea, {label: 'Если', value: hypotheses.draft.if, onChange: value => updateHypothesis('if', value), invalid: showHypothesisError && !hypotheses.draft.if.trim(), error: showHypothesisError && !hypotheses.draft.if.trim() ? 'Опишите действие' : undefined, placeholder: 'Добавим в отчёт сравнение показателей за разные периоды'}),
+        h(PassportTextarea, {label: 'То', value: hypotheses.draft.then, onChange: value => updateHypothesis('then', value), invalid: showHypothesisError && !hypotheses.draft.then.trim(), error: showHypothesisError && !hypotheses.draft.then.trim() ? 'Опишите ожидаемый результат' : undefined, placeholder: 'Пользователь быстрее заметит изменение показателей'}),
+        h(PassportTextarea, {label: 'Потому что', value: hypotheses.draft.because, onChange: value => updateHypothesis('because', value), invalid: showHypothesisError && !hypotheses.draft.because.trim(), error: showHypothesisError && !hypotheses.draft.because.trim() ? 'Объясните причину' : undefined, placeholder: 'Не придётся вручную собирать и сравнивать данные'}),
     ));
 
     const isExistingMetric = metrics.draft && metrics.items.some(metric => metric.id === metrics.draft.id);
     const closeMetricEditor = () => { metrics.cancel(); setShowMetricError(false); };
     const metricEditor = metrics.draft && h(T.Dialog, {
-        open: true, size: 'l', title: 'Метрика', description: 'Как поймём, что решение сработало',
+        open: true, size: 'm', title: 'Метрика', description: 'Как поймём, что решение сработало',
         onClose: closeMetricEditor,
         actions: [
             !isExistingMetric && {label: 'Отмена', appearance: 'flat', onClick: closeMetricEditor},
@@ -479,12 +548,25 @@ function Passport({platform}) {
             h(T.Input, {label: 'Текущее значение', value: metrics.draft.current, onChange: value => updateMetric('current', value), invalid: showMetricError && !metrics.draft.current.trim(), error: showMetricError && !metrics.draft.current.trim() ? 'Укажите текущее значение' : undefined, placeholder: '10'}),
             h(T.Combobox, {label: 'Единица измерения', value: metrics.draft.unit, onChange: value => updateMetric('unit', String(value || '')), items: METRIC_UNITS, invalid: showMetricError && !metrics.draft.unit.trim(), error: showMetricError && !metrics.draft.unit.trim() ? 'Укажите единицу измерения' : undefined, placeholder: 'Выберите или впишите'}),
             h(T.InputDate, {label: 'Дата', value: metrics.draft.currentDate, onChange: value => updateMetric('currentDate', value)}),
-            h('div', {className: 'passport-metric-target'},
+        ),
+        h('div', {className: 'passport-metric-target'},
+            h('div', {className: 'passport-metric-target-row'},
                 h(T.Input, {label: 'Целевое значение', value: metrics.draft.target, onChange: value => updateMetric('target', value), invalid: showMetricError && !metrics.draft.target.trim(), error: showMetricError && !metrics.draft.target.trim() ? 'Укажите целевое значение' : undefined, placeholder: '13'}),
-                metricDelta(metrics.draft) && h('div', {className: 'passport-metric-delta tui-ui-s'}, metricDelta(metrics.draft)),
+                h(MetricDeltaField, {metric: metrics.draft}),
             ),
         ),
     ));
+
+    const demoAction = demoMode && h('div', {className: 'passport-demo-action', onMouseEnter: showDemoTooltip, onMouseLeave: hideDemoTooltip},
+        h(T.TooltipHost, {content: demoFilled ? 'Сбросить пример' : 'Заполнить примером', open: demoTooltip, onOpenChange: open => { if (!open) setDemoTooltip(false); }, side: 'top', appearance: 'floating'},
+            h(T.Button, {
+                size: 'l', rounded: true, appearance: 'floating',
+                icon: demoFilled ? 'medium-pragmatic/cross' : 'medium-pragmatic/pencil',
+                ariaLabel: demoFilled ? 'Сбросить пример' : 'Заполнить примером',
+                onClick: demoFilled ? reset : fillExample,
+            }),
+        ),
+    );
 
     return h(React.Fragment, null, h(T.Dialog, {
         open: true, inline: true, fullscreen: true, closeButton: false,
@@ -497,7 +579,7 @@ function Passport({platform}) {
             (step === 4 || step === 6) && {label: 'Пропустить', appearance: 'flat', onClick: skip},
             {label: reviewStep !== null ? 'Готово' : step === STEPS.length - 1 ? 'Проверить задачу' : 'Дальше', onClick: next},
         ].filter(Boolean),
-    }, fields), hypothesisEditor, metricEditor);
+    }, h(React.Fragment, null, fields, demoAction)), hypothesisEditor, metricEditor);
 }
 
 export function Mobile() { return h(Passport, {platform: 'mobile'}); }
