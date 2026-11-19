@@ -2,7 +2,8 @@
   "name": "Инициатива бизнеса без проблемы пользователя",
   "expectedIssueIds": [],
   "passport": {
-    "situation": {"context": "", "difficulty": "", "consequence": "", "businessInitiative": true},
+    "audience": [{"name": "Новые продавцы", "count": "1 000 в квартал", "share": "1–5%"}],
+    "situation": {"problems": [], "businessInitiative": true},
     "business": {"impacts": ["Репутация"], "comment": ""},
     "hypotheses": [],
     "metrics": [{"name": "NPS", "current": "45", "unit": "%", "currentDate": "2026-11-18", "target": "50"}]

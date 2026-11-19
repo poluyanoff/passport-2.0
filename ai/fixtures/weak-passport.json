@@ -2,7 +2,8 @@
   "name": "Общее описание с замечаниями",
   "expectedIssueIds": ["situation-specificity", "business-impact", "hypothesis-specificity", "metrics-quality"],
   "passport": {
-    "situation": {"context": "Не знаю", "difficulty": "Плохо", "consequence": "Непонятно", "businessInitiative": false},
+    "audience": [{"name": "Пользователи", "count": "", "share": ""}],
+    "situation": {"problems": [{"context": "Не знаю", "difficulty": "Плохо", "consequence": "Непонятно", "frequency": "Раз в день"}], "businessInitiative": false},
     "business": {"impacts": [], "comment": ""},
     "hypotheses": [{"if": "Сделаем", "then": "Станет лучше", "because": "Так надо"}],
     "metrics": [{"name": "", "current": "", "unit": "", "currentDate": null, "target": ""}]

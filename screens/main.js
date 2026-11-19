@@ -1,7 +1,9 @@
 import {mountFlow} from './shell/FlowShell.js';
 import {React, T} from './runtime.js';
 import {about, spec} from './flow.content.js';
+import {ControlRenderer, Folder, useDialKitController} from 'dialkit';
 import './passport.css';
+import 'dialkit/styles.css';
 
 const h = React.createElement;
 const TEXTAREA_HEIGHT = 64;
@@ -9,7 +11,7 @@ const STEPS = [
     ['problem', 'Кого касается проблема', 'Назовите сегмент и его размер'],
     ['solution', 'Что происходит', 'Опишите проблему'],
     ['src', 'Какие есть данные', 'Отметьте, какие источники смотрели, и добавьте ссылки на артефакты'],
-    ['business', 'На что влияет в бизнесе', 'Отметьте, на что влияет проблема, и оставьте комментарий'],
+    ['business', 'Зачем это бизнесу', 'Во что инвестируем ресурсы команды'],
     ['hyp', 'Что предлагается сделать', 'Опишите идею решения или пропустите, если ждёте решение от дизайнера'],
     ['metrics', 'Как оценим результат', 'Укажите метрики, по которым поймёте результат'],
     ['refs', 'Что уже сделано другими', 'Покажите аналоги и что берете из них в решение'],
@@ -18,12 +20,30 @@ const STEPS = [
 const SHARES = ['до 1%', '1–5%', '5–10%', '10–25%', '25–50%', 'более 50%'];
 const SOURCES = ['Аналитика, выгрузка', 'Интервью с пользователями', 'Результат теста или A/B', 'Исследования', 'Обращения в поддержку', 'Проблема не требует подтверждения, опираемся на мнение команды'];
 const OPINION_SOURCE = SOURCES[SOURCES.length - 1];
-const BUSINESS_IMPACTS = ['Финансовые показатели', 'MAU, Retention', 'Репутация', 'ФОТ'];
+const BUSINESS_IMPACTS = [
+    'Нарастить объём продаж и выручку',
+    'Увеличить активность и охват аудитории',
+    'Улучшить удержание пользователей / снизить отток',
+    'Оптимизировать воронку',
+    'Ускорить получение ценности от продукта',
+    'Довести до маркет-нормал',
+    'Избежать репутационных рисков',
+    'Снизить затраты на ФОТ',
+];
 const REFERENCES = ['Прямые конкуренты', 'Косвенные конкуренты', 'Аналоги внутри компании', 'Аналоги внутри отдела'];
 const FREQUENCIES = ['Несколько раз в день', 'Раз в день', 'Несколько раз в неделю', 'Несколько раз в месяц', 'Раз в месяц', 'Раз в квартал', 'Разово'];
 const DATE_TYPES = ['Старт разработки', 'Передача в разработку', 'Демонстрация бизнесу', 'Запуск в прод'];
 const METRIC_UNITS = ['%', '₽', 'шт.', 'обращения', 'заявки'];
+const MAX_SEGMENTS = 10;
+const MAX_PROBLEMS = 10;
 const MAX_HYPOTHESES = 10;
+const EXAMPLE_DIAL_ID = 'passport-examples';
+const EXAMPLE_DIAL_CONFIG = {
+    good: {type: 'action', label: 'Хороший пример'},
+    fallback: {type: 'action', label: 'Падает на fallback'},
+    ai: {type: 'action', label: 'Падает на AI-проверке'},
+};
+const EXAMPLE_DIAL_CONTROLS = Object.entries(EXAMPLE_DIAL_CONFIG).map(([path, control]) => ({type: 'action', path, label: control.label}));
 let entitySequence = 0;
 
 function createEntityId(prefix) {
@@ -33,6 +53,14 @@ function createEntityId(prefix) {
 
 function createHypothesis() {
     return {id: createEntityId('hypothesis'), if: '', then: '', because: ''};
+}
+
+function createSegment() {
+    return {id: createEntityId('segment'), name: '', count: '', share: ''};
+}
+
+function createProblem() {
+    return {id: createEntityId('problem'), context: '', difficulty: '', consequence: '', frequency: ''};
 }
 
 function createMetric() {
@@ -46,6 +74,41 @@ function parseMetricValue(value) {
 
 function formatMetricValue(value) {
     return new Intl.NumberFormat('ru-RU', {maximumFractionDigits: 2}).format(value);
+}
+
+const PEOPLE_FORMS = {one: 'человек', few: 'человека', many: 'человек', other: 'человека'};
+const PEOPLE_PLURAL_RULES = new Intl.PluralRules('ru-RU');
+
+function formatSegmentCount(value) {
+    const count = String(value || '').trim();
+    if (!count || /человек(?:а|ов)?/iu.test(count)) return count;
+
+    const match = count.match(/\d(?:[\d\s.,]*\d)?/u);
+    if (!match) return count;
+
+    const number = Number(match[0].replace(/\s/g, '').replace(',', '.'));
+    if (!Number.isFinite(number)) return count;
+
+    const people = PEOPLE_FORMS[PEOPLE_PLURAL_RULES.select(number)];
+    return `${count.slice(0, match.index)}${match[0]} ${people}${count.slice(match.index + match[0].length)}`;
+}
+
+function formatSegmentShare(value) {
+    const share = String(value || '').trim();
+    return share && !/аудитори[яи]/iu.test(share) ? `${share} аудитории` : share;
+}
+
+function formatSegmentDescription(segment) {
+    return [formatSegmentCount(segment.count), formatSegmentShare(segment.share)].filter(Boolean).join(' · ');
+}
+
+function formatProblemDescription(problem) {
+    return [
+        `Контекст: ${problem.context}`,
+        `Затруднение: ${problem.difficulty}`,
+        `Последствие: ${problem.consequence}`,
+        problem.frequency && `Частота: ${problem.frequency}`,
+    ].filter(Boolean).join('\n');
 }
 
 function metricDelta(metric) {
@@ -144,6 +207,24 @@ function PassportTextarea({label, labelOutside, value, onChange, disabled, inval
     });
 }
 
+function PassportExampleDial({filled, onAction, onReset}) {
+    const dial = useDialKitController('Примеры паспорта', EXAMPLE_DIAL_CONFIG, {
+        id: EXAMPLE_DIAL_ID,
+        defaultCollapsed: true,
+        onAction,
+    });
+    const [open, setOpen] = React.useState(false);
+
+    return h('div', {className: 'passport-example-dial dialkit-root', 'data-mode': 'popover', 'data-theme': 'dark', 'data-tui-check-ignore': ''},
+        h('div', {className: 'dialkit-panel', 'data-position': 'bottom-right'},
+            h(Folder, {title: 'Примеры паспорта', open, onOpenChange: setOpen, isRoot: true},
+                h(ControlRenderer, {panelId: EXAMPLE_DIAL_ID, controls: EXAMPLE_DIAL_CONTROLS, values: dial.values}),
+                filled && h('button', {type: 'button', className: 'dialkit-button passport-example-dial__reset', onClick: onReset}, 'Сбросить пример'),
+            ),
+        ),
+    );
+}
+
 function Passport({platform}) {
     const [step, setStep] = React.useState(0);
     const [showError, setShowError] = React.useState(false);
@@ -153,11 +234,10 @@ function Passport({platform}) {
     const [review, setReview] = React.useState(false);
     const [reviewStep, setReviewStep] = React.useState(null);
     const [reviewIssues, setReviewIssues] = React.useState([]);
-    const [segment, setSegment] = React.useState({name: '', count: '', share: ''});
-    const [context, setContext] = React.useState('');
-    const [difficulty, setDifficulty] = React.useState('');
-    const [consequence, setConsequence] = React.useState('');
-    const [frequency, setFrequency] = React.useState('');
+    const segments = useEntityCollection(createSegment, MAX_SEGMENTS);
+    const [showSegmentError, setShowSegmentError] = React.useState(false);
+    const problems = useEntityCollection(createProblem, MAX_PROBLEMS);
+    const [showProblemError, setShowProblemError] = React.useState(false);
     const [businessInitiative, setBusinessInitiative] = React.useState(false);
     const [sources, setSources] = React.useState([]);
     const [sourceLinks, setSourceLinks] = React.useState('');
@@ -173,10 +253,7 @@ function Passport({platform}) {
     const [dateType, setDateType] = React.useState('');
     const [, title, description] = STEPS[step];
     const mobile = platform === 'mobile';
-    const demoMode = __PASSPORT_DEMO__;
     const [demoFilled, setDemoFilled] = React.useState(false);
-    const [demoTooltip, setDemoTooltip] = React.useState(false);
-    const demoTooltipTimer = React.useRef(null);
     const minStartDate = new Date().toISOString().slice(0, 10);
 
     React.useEffect(() => {
@@ -191,8 +268,6 @@ function Passport({platform}) {
             window.clearInterval(progressTimer);
         };
     }, [checking]);
-
-    React.useEffect(() => () => window.clearTimeout(demoTooltipTimer.current), []);
 
     function toggle(setItems, item, checked) {
         setItems(current => checked ? [...current, item] : current.filter(value => value !== item));
@@ -211,6 +286,56 @@ function Passport({platform}) {
 
     function updateReference(reference, key, value) {
         setReferenceDetails(current => ({...current, [reference]: {...current[reference], [key]: value}}));
+    }
+
+    function openSegmentEditor() {
+        if (!segments.add()) T.showToast({label: `Можно добавить не больше ${MAX_SEGMENTS} сегментов`, icon: 'fixed-color/alert-negative'});
+        setShowSegmentError(false);
+    }
+
+    function editSegment(segment) {
+        segments.edit(segment);
+        setShowSegmentError(false);
+    }
+
+    function updateSegment(key, value) {
+        segments.draft && segments.edit({...segments.draft, [key]: value});
+    }
+
+    function saveSegment() {
+        const segment = segments.draft;
+        if (!segment) return;
+        if (!segment.name.trim() || (!segment.count.trim() && !segment.share)) {
+            setShowSegmentError(true);
+            return;
+        }
+        segments.save(segment);
+        setShowSegmentError(false);
+    }
+
+    function openProblemEditor() {
+        if (!problems.add()) T.showToast({label: `Можно добавить не больше ${MAX_PROBLEMS} проблем`, icon: 'fixed-color/alert-negative'});
+        setShowProblemError(false);
+    }
+
+    function editProblem(problem) {
+        problems.edit(problem);
+        setShowProblemError(false);
+    }
+
+    function updateProblem(key, value) {
+        problems.draft && problems.edit({...problems.draft, [key]: value});
+    }
+
+    function saveProblem() {
+        const problem = problems.draft;
+        if (!problem) return;
+        if (!problem.context.trim() || !problem.difficulty.trim() || !problem.consequence.trim() || !problem.frequency) {
+            setShowProblemError(true);
+            return;
+        }
+        problems.save(problem);
+        setShowProblemError(false);
     }
 
     function openHypothesisEditor() {
@@ -265,10 +390,9 @@ function Passport({platform}) {
 
     function validationError() {
         if (step === 0) {
-            if (!segment.name.trim()) return {field: true};
-            if (!segment.count.trim() && !segment.share) return {toast: 'Укажите размер сегмента: количество людей или долю аудитории'};
+            if (!segments.items.length) return {toast: 'Добавьте хотя бы один сегмент'};
         }
-        if (step === 1 && !businessInitiative && (!context.trim() || !difficulty.trim() || !consequence.trim() || !frequency)) return {field: true};
+        if (step === 1 && !businessInitiative && !problems.items.length) return {toast: 'Добавьте хотя бы одну проблему или отметьте инициативу бизнеса'};
         if (step === 2 && !sources.length) return {toast: 'Выберите хотя бы один источник данных'};
         if (step === 3 && !businessImpacts.length && !businessComment.trim()) return {toast: 'Отметьте влияние на бизнес или добавьте комментарий'};
         if (step === 5) {
@@ -313,8 +437,8 @@ function Passport({platform}) {
     function reviewPayload() {
         return {
             passport: {
-                audience: segment,
-                situation: {context, difficulty, consequence, frequency, businessInitiative},
+                audience: segments.items.map(({id, ...segment}) => segment),
+                situation: {problems: problems.items.map(({id, ...problem}) => problem), businessInitiative},
                 sources: {items: sources, links: sourceLinks},
                 business: {impacts: businessImpacts, comment: businessComment},
                 hypotheses: hypotheses.items.map(({id, ...hypothesis}) => hypothesis),
@@ -355,55 +479,85 @@ function Passport({platform}) {
 
     function reset() {
         setStep(0); setShowError(false); setSent(false); setChecking(false); setCheckingProgress(0); setReview(false); setReviewStep(null); setReviewIssues([]);
-        setSegment({name: '', count: '', share: ''}); setContext(''); setDifficulty(''); setConsequence(''); setFrequency(''); setBusinessInitiative(false);
+        segments.reset(); setShowSegmentError(false); problems.reset(); setShowProblemError(false); setBusinessInitiative(false);
         setSources([]); setSourceLinks(''); setBusinessComment(''); setBusinessImpacts([]);
         hypotheses.reset(); setShowHypothesisError(false); metrics.reset(); setShowMetricError(false);
         setReferences([]); setReferenceDetails({}); setStartDate(null); setDateType('');
         setDemoFilled(false);
     }
 
-    function fillExample() {
+    function fillExample(kind) {
+        const examples = {
+            good: {
+                segment: {name: 'Новые селлеры на подключении', count: '1 000 в квартал', share: '1–5%'},
+                problem: {context: 'При подключении магазина к сервису продавец заполняет данные о компании.', difficulty: 'Не понимает, какие документы нужны и где их найти.', consequence: 'Откладывает подключение и обращается в поддержку.', frequency: 'Несколько раз в неделю'},
+                sources: ['Аналитика, выгрузка', 'Интервью с пользователями'],
+                sourceLinks: 'https://example.com/research',
+                impacts: ['Ускорить получение ценности от продукта'],
+                businessComment: 'Сокращаем срок подключения и нагрузку на поддержку.',
+                hypothesis: {if: 'Добавим понятный список документов на каждом шаге подключения.', then: 'Продавец быстрее завершит подключение магазина.', because: 'Не придётся искать требования в справке и уточнять их в поддержке.'},
+                metric: {name: 'Конверсия в покупку', current: '12', unit: '%', target: '18'},
+                reference: {links: 'https://example.com/competitor', take: 'Пошаговую подачу требований и примеры документов'},
+            },
+            fallback: {
+                segment: {name: 'Покупатели', count: '500', share: '1–5%'},
+                problem: {context: 'Не знаю', difficulty: 'Плохо', consequence: 'Непонятно', frequency: 'Раз в день'},
+                sources: ['Аналитика, выгрузка'], sourceLinks: '',
+                impacts: ['Оптимизировать воронку'], businessComment: '',
+                hypothesis: {if: 'Сделаем', then: 'Станет лучше', because: 'Так надо'},
+                metric: {name: 'Конверсия', current: '10', unit: '%', target: '12'},
+                reference: {links: '', take: ''},
+            },
+            ai: {
+                segment: {name: 'Покупатели с возвратом товара', count: '2 400 в месяц', share: '10–25%'},
+                problem: {context: 'После оформления возврата покупатель открывает личный кабинет, чтобы узнать статус денег.', difficulty: 'Не видит срок и текущий этап возврата после передачи товара в пункт выдачи.', consequence: 'Повторно пишет в поддержку и оставляет негативный отзыв о сервисе.', frequency: 'Несколько раз в неделю'},
+                sources: ['Обращения в поддержку', 'Интервью с пользователями'], sourceLinks: 'https://example.com/returns-research',
+                impacts: ['Избежать репутационных рисков'], businessComment: 'Снижаем число повторных обращений и негативных отзывов о возвратах.',
+                hypothesis: {if: 'Добавим в личный кабинет календарь городских мероприятий.', then: 'Покупатели будут чаще планировать досуг на выходные.', because: 'Информация о событиях поможет выбрать интересный маршрут.'},
+                metric: {name: 'Количество просмотров календаря', current: '300', unit: 'шт.', target: '900'},
+                reference: {links: 'https://example.com/city-events', take: 'Карточки мероприятий с датой и адресом'},
+            },
+        };
+        const example = examples[kind] || examples.good;
         setStep(0); setShowError(false); setReview(false); setReviewStep(null); setReviewIssues([]);
-        setSegment({name: 'Новые селлеры на подключении', count: '1 000 в квартал', share: '1–5%'});
-        setContext('При подключении магазина к сервису продавец заполняет данные о компании.');
-        setDifficulty('Не понимает, какие документы нужны и где их найти.');
-        setConsequence('Откладывает подключение и обращается в поддержку.');
-        setFrequency('Несколько раз в неделю'); setBusinessInitiative(false);
-        setSources(['Аналитика, выгрузка', 'Интервью с пользователями']);
-        setSourceLinks('https://example.com/research');
-        setBusinessImpacts(['Финансовые показатели']); setBusinessComment('Сокращаем срок подключения и нагрузку на поддержку.');
-        hypotheses.replace([{...createHypothesis(), if: 'Добавим понятный список документов на каждом шаге подключения.', then: 'Продавец быстрее завершит подключение магазина.', because: 'Не придётся искать требования в справке и уточнять их в поддержке.'}]);
-        metrics.replace([{...createMetric(), name: 'Конверсия в покупку', current: '12', unit: '%', currentDate: new Date().toISOString().slice(0, 10), target: '18'}]);
+        segments.replace([{...createSegment(), ...example.segment}]);
+        problems.replace([{...createProblem(), ...example.problem}]);
+        setBusinessInitiative(false);
+        setSources(example.sources);
+        setSourceLinks(example.sourceLinks);
+        setBusinessImpacts(example.impacts); setBusinessComment(example.businessComment);
+        hypotheses.replace([{...createHypothesis(), ...example.hypothesis}]);
+        metrics.replace([{...createMetric(), ...example.metric, currentDate: new Date().toISOString().slice(0, 10)}]);
         setReferences(['Прямые конкуренты']);
-        setReferenceDetails({'Прямые конкуренты': {links: 'https://example.com/competitor', take: 'Пошаговую подачу требований и примеры документов'}});
+        setReferenceDetails({'Прямые конкуренты': example.reference});
         setStartDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
         setDateType('Передача в разработку');
         setDemoFilled(true);
     }
 
-    function showDemoTooltip() {
-        demoTooltipTimer.current = window.setTimeout(() => setDemoTooltip(true), 300);
-    }
-
-    function hideDemoTooltip() {
-        window.clearTimeout(demoTooltipTimer.current);
-        setDemoTooltip(false);
-    }
-
     const fields = step === 0
-        ? h('div', {className: 'passport-fields'},
-            h('section', {className: 'passport-segment'}, h('div', {className: 'passport-segment-fields'},
-                h(T.Input, {label: 'Сегмент', value: segment.name, onChange: value => setSegment(current => ({...current, name: value})), invalid: showError && !segment.name.trim(), error: showError && !segment.name.trim() ? 'Укажите сегмент' : undefined, placeholder: 'Новые селлеры на\u00a0подключении'}),
-                h(T.Input, {label: 'Сколько человек', value: segment.count, onChange: value => setSegment(current => ({...current, count: value})), placeholder: 'Около 1 000 в\u00a0квартал'}),
-                h(T.Select, {label: 'Доля от общей аудитории', value: segment.share, onChange: value => setSegment(current => ({...current, share: value})), items: SHARES, placeholder: 'Выберите долю'}),
-            )),
+        ? h('div', {className: 'passport-segments'},
+            h('button', {type: 'button', className: 'passport-add-metric passport-add-segment', onClick: openSegmentEditor},
+                h('span', {className: 'passport-add-metric__icon', 'aria-hidden': true}, h(T.Icon, {name: 'small-pragmatic/plus', size: 24})),
+                h('span', {className: 'tui-ui-m'}, 'Добавить сегмент'),
+            ),
+            h('div', {className: 'passport-segment-list'}, segments.items.map(segment => h(T.Cell, {
+                key: segment.id, avatar: 'medium/users', avatarTone: 'accent-2', title: segment.name,
+                description: formatSegmentDescription(segment),
+                onClick: () => editSegment(segment),
+            }))),
         )
         : step === 1
-            ? h('div', {className: 'passport-fields'},
-                h(T.Input, {label: 'В каком контексте', value: context, onChange: setContext, disabled: businessInitiative, invalid: showError && !businessInitiative && !context.trim(), error: showError && !businessInitiative && !context.trim() ? 'Опишите контекст' : undefined, placeholder: 'При ежедневной проверке финансовых показателей'}),
-                h(PassportTextarea, {label: 'С каким затруднением сталкивается', value: difficulty, onChange: setDifficulty, disabled: businessInitiative, invalid: showError && !businessInitiative && !difficulty.trim(), error: showError && !businessInitiative && !difficulty.trim() ? 'Опишите затруднение' : undefined, placeholder: 'Вынужден вручную сравнивать данные за разные периоды'}),
-                h(PassportTextarea, {label: 'К чему это приводит', value: consequence, onChange: setConsequence, disabled: businessInitiative, invalid: showError && !businessInitiative && !consequence.trim(), error: showError && !businessInitiative && !consequence.trim() ? 'Опишите последствие' : undefined, placeholder: 'Тратит больше времени и может поздно заметить снижение прибыли'}),
-                h(T.Select, {label: 'Как часто это происходит', value: frequency, onChange: setFrequency, disabled: businessInitiative, invalid: showError && !businessInitiative && !frequency, error: showError && !businessInitiative && !frequency ? 'Выберите частоту' : undefined, items: FREQUENCIES, placeholder: 'Выберите частоту'}),
+            ? h('div', {className: 'passport-problems'},
+                h('button', {type: 'button', className: 'passport-add-metric passport-add-problem', onClick: openProblemEditor},
+                    h('span', {className: 'passport-add-metric__icon', 'aria-hidden': true}, h(T.Icon, {name: 'small-pragmatic/plus', size: 24})),
+                    h('span', {className: 'tui-ui-m'}, 'Добавить проблему'),
+                ),
+                h('div', {className: 'passport-problem-list'}, problems.items.map(problem => h(T.Cell, {
+                    key: problem.id, avatar: 'medium/alert-circle', avatarTone: 'accent-2', title: problem.difficulty,
+                    description: problem.consequence,
+                    onClick: () => editProblem(problem),
+                }))),
                 h(T.Checkbox, {label: 'Явных проблем у пользователей нет. Задача — инициатива бизнеса', checked: businessInitiative, onChange: setBusinessInitiative}),
             )
         : step === 2
@@ -459,11 +613,9 @@ function Passport({platform}) {
     function epicDescription() {
         return [
             'Аудитория',
-            [segment.name, segment.count, segment.share].filter(Boolean).join(' · '),
-            '', 'Контекст', context,
-            '', 'Затруднение', difficulty,
-            '', 'Последствие', consequence,
-            frequency ? `\nЧастота: ${frequency}` : '',
+            ...segments.items.map(segment => [segment.name, formatSegmentDescription(segment)].filter(Boolean).join(' · ')),
+            ...(problems.items.length ? ['', 'Проблемы', ...problems.items.map((problem, index) => `${index + 1}. ${formatProblemDescription(problem)}`)] : []),
+            ...(!problems.items.length && businessInitiative ? ['', 'Инициатива бизнеса без явной проблемы пользователя'] : []),
             '', 'Подтверждение', sources.join(', '), sourceLinks,
             '', 'Влияние на бизнес', businessImpacts.join(', '), businessComment,
             ...(hypotheses.items.length ? ['', 'Гипотезы', ...hypotheses.items.map((hypothesis, index) => `${index + 1}. ${[hypothesis.if, hypothesis.then, hypothesis.because].filter(Boolean).join(' → ')}`)] : []),
@@ -480,8 +632,9 @@ function Passport({platform}) {
         const section = (title, content) => content ? `<h2>${escapeHtml(title)}</h2><p>${escapeHtml(content).replace(/\n/g, '<br>')}</p>` : '';
         const list = (title, items, tag) => items.length ? `<h2>${title}</h2><${tag}>${items.map(item => `<li>${escapeHtml(item).replace(/\n/g, '<br>')}</li>`).join('')}</${tag}>` : '';
         return [
-            section('Аудитория', [segment.name, segment.count, segment.share].filter(Boolean).join(' · ')),
-            section('Контекст', context), section('Затруднение', difficulty), section('Последствие', [consequence, frequency && `Частота: ${frequency}`].filter(Boolean).join('\n')),
+            list('Аудитория', segments.items.map(segment => [segment.name, formatSegmentDescription(segment)].filter(Boolean).join(' · ')), 'ul'),
+            list('Проблемы', problems.items.map(formatProblemDescription), 'ol'),
+            !problems.items.length && businessInitiative && section('Инициатива', 'Бизнес-инициатива без явной проблемы пользователя'),
             section('Подтверждение', [sources.join(', '), sourceLinks].filter(Boolean).join('\n')),
             section('Влияние на бизнес', [businessImpacts.join(', '), businessComment].filter(Boolean).join('\n')),
             list('Гипотезы', hypotheses.items.map(hypothesis => [hypothesis.if, hypothesis.then, hypothesis.because].filter(Boolean).join(' → ')), 'ol'),
@@ -506,7 +659,10 @@ function Passport({platform}) {
         open: true, inline: true, fullscreen: true, closeButton: false,
         platform: mobile ? 'mobile' : undefined, system: mobile ? 'ios' : undefined,
         title: 'Результаты проверки', description: 'Вот что стоит уточнить перед отправкой дизайнеру',
-        stickyFooter: true, actions: [{label: 'Отправить дизайнеру', onClick: finishReview}],
+        stickyFooter: true, actions: [
+            {label: 'Проверить ещё раз', appearance: 'flat', onClick: () => void startReview()},
+            {label: 'Отправить дизайнеру', onClick: finishReview},
+        ],
     }, h('div', {className: 'passport-review'}, reviewIssues.length
         ? reviewIssues.map(issue => h(T.CardLarge, {
         key: issue.id, appearance: 'flat', space: 'compact', title: issue.title, description: issue.description,
@@ -515,6 +671,39 @@ function Passport({platform}) {
         : h(T.CardLarge, {appearance: 'flat', space: 'compact', title: 'Всё готово', description: 'Замечаний по содержанию нет. Можно отправить описание дизайнеру.'})));
 
     if (sent) return h(T.Dialog, {open: true, inline: true, fullscreen: true, closeButton: false, platform: mobile ? 'mobile' : undefined, system: mobile ? 'ios' : undefined}, h(T.BlockStatus, {type: 'fullscreen', kind: 'result', image: 'check', title: 'Задача описана', text: 'Вставьте описание в эпик в поле Description', actions: [{label: 'Скопировать описание', icon: 'small-pragmatic/copy', onClick: copyEpicDescription}, {label: 'Заполнить заново', appearance: 'secondary', onClick: reset}]}));
+
+    const isExistingSegment = segments.draft && segments.items.some(segment => segment.id === segments.draft.id);
+    const closeSegmentEditor = () => { segments.cancel(); setShowSegmentError(false); };
+    const segmentEditor = segments.draft && h(T.Dialog, {
+        open: true, size: 'm', title: 'Сегмент', description: 'Кого касается проблема',
+        onClose: closeSegmentEditor,
+        actions: [
+            !isExistingSegment && {label: 'Отмена', appearance: 'flat', onClick: closeSegmentEditor},
+            isExistingSegment && {label: 'Удалить', appearance: 'flat-destructive', onClick: () => { segments.remove(segments.draft.id); setShowSegmentError(false); }},
+            {label: 'Сохранить', onClick: saveSegment},
+        ].filter(Boolean),
+    }, h('div', {className: 'passport-segment-fields'},
+        h(T.Input, {label: 'Название сегмента', value: segments.draft.name, onChange: value => updateSegment('name', value), invalid: showSegmentError && !segments.draft.name.trim(), error: showSegmentError && !segments.draft.name.trim() ? 'Укажите название сегмента' : undefined, placeholder: 'Новые селлеры на\u00a0подключении'}),
+        h(T.Input, {label: 'Сколько человек', value: segments.draft.count, onChange: value => updateSegment('count', value), placeholder: 'Около 1 000 в\u00a0квартал'}),
+        h(T.Select, {label: 'Доля от общей аудитории', value: segments.draft.share, onChange: value => updateSegment('share', value), items: SHARES, placeholder: 'Выберите долю', invalid: showSegmentError && !segments.draft.count.trim() && !segments.draft.share, error: showSegmentError && !segments.draft.count.trim() && !segments.draft.share ? 'Укажите количество или долю' : undefined}),
+    ));
+
+    const isExistingProblem = problems.draft && problems.items.some(problem => problem.id === problems.draft.id);
+    const closeProblemEditor = () => { problems.cancel(); setShowProblemError(false); };
+    const problemEditor = problems.draft && h(T.Dialog, {
+        open: true, size: 'm', title: 'Проблема', description: 'Что мешает пользователю или бизнесу',
+        onClose: closeProblemEditor,
+        actions: [
+            !isExistingProblem && {label: 'Отмена', appearance: 'flat', onClick: closeProblemEditor},
+            isExistingProblem && {label: 'Удалить', appearance: 'flat-destructive', onClick: () => { problems.remove(problems.draft.id); setShowProblemError(false); }},
+            {label: 'Сохранить', onClick: saveProblem},
+        ].filter(Boolean),
+    }, h('div', {className: 'passport-fields'},
+        h(T.Input, {label: 'В каком контексте', value: problems.draft.context, onChange: value => updateProblem('context', value), invalid: showProblemError && !problems.draft.context.trim(), error: showProblemError && !problems.draft.context.trim() ? 'Опишите контекст' : undefined, placeholder: 'При ежедневной проверке финансовых показателей'}),
+        h(T.Select, {label: 'Как часто это происходит', value: problems.draft.frequency, onChange: value => updateProblem('frequency', value), items: FREQUENCIES, invalid: showProblemError && !problems.draft.frequency, error: showProblemError && !problems.draft.frequency ? 'Выберите частоту' : undefined, placeholder: 'Выберите частоту'}),
+        h(PassportTextarea, {label: 'С каким затруднением сталкивается', value: problems.draft.difficulty, onChange: value => updateProblem('difficulty', value), invalid: showProblemError && !problems.draft.difficulty.trim(), error: showProblemError && !problems.draft.difficulty.trim() ? 'Опишите затруднение' : undefined, placeholder: 'Вынужден вручную сравнивать данные за разные периоды'}),
+        h(PassportTextarea, {label: 'К чему это приводит', value: problems.draft.consequence, onChange: value => updateProblem('consequence', value), invalid: showProblemError && !problems.draft.consequence.trim(), error: showProblemError && !problems.draft.consequence.trim() ? 'Опишите последствие' : undefined, placeholder: 'Тратит больше времени и может поздно заметить снижение прибыли'}),
+    ));
 
     const isExistingHypothesis = hypotheses.draft && hypotheses.items.some(hypothesis => hypothesis.id === hypotheses.draft.id);
     const closeHypothesisEditor = () => { hypotheses.cancel(); setShowHypothesisError(false); };
@@ -557,16 +746,7 @@ function Passport({platform}) {
         ),
     ));
 
-    const demoAction = demoMode && h('div', {className: 'passport-demo-action', onMouseEnter: showDemoTooltip, onMouseLeave: hideDemoTooltip},
-        h(T.TooltipHost, {content: demoFilled ? 'Сбросить пример' : 'Заполнить примером', open: demoTooltip, onOpenChange: open => { if (!open) setDemoTooltip(false); }, side: 'top', appearance: 'floating'},
-            h(T.Button, {
-                size: 'l', rounded: true, appearance: 'floating',
-                icon: demoFilled ? 'medium-pragmatic/cross' : 'medium-pragmatic/pencil',
-                ariaLabel: demoFilled ? 'Сбросить пример' : 'Заполнить примером',
-                onClick: demoFilled ? reset : fillExample,
-            }),
-        ),
-    );
+    const demoAction = h(PassportExampleDial, {filled: demoFilled, onAction: fillExample, onReset: reset});
 
     return h(React.Fragment, null, h(T.Dialog, {
         open: true, inline: true, fullscreen: true, closeButton: false,
@@ -579,7 +759,7 @@ function Passport({platform}) {
             (step === 4 || step === 6) && {label: 'Пропустить', appearance: 'flat', onClick: skip},
             {label: reviewStep !== null ? 'Готово' : step === STEPS.length - 1 ? 'Проверить задачу' : 'Дальше', onClick: next},
         ].filter(Boolean),
-    }, h(React.Fragment, null, fields, demoAction)), hypothesisEditor, metricEditor);
+    }, h(React.Fragment, null, fields, demoAction)), segmentEditor, problemEditor, hypothesisEditor, metricEditor);
 }
 
 export function Mobile() { return h(Passport, {platform: 'mobile'}); }

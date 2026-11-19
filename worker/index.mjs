@@ -1,5 +1,5 @@
 import rules from '../ai/review-rules.json';
-import {FORMAL_REVIEW_WARNING, reviewWithRules} from '../shared/review-rules.mjs';
+import {FORMAL_REVIEW_WARNING, hasValidAudience, hasValidSituation, reviewWithRules} from '../shared/review-rules.mjs';
 
 const responseSchema = {
     type: 'object', additionalProperties: false, required: ['issues'], properties: {
@@ -91,6 +91,8 @@ export default {
             return json({error: error.message === 'Слишком большой запрос.' ? error.message : 'Некорректный JSON.'}, 400);
         }
         if (!payload?.passport || typeof payload.passport !== 'object') return json({error: 'Передайте данные паспорта.'}, 400);
+        if (!hasValidAudience(payload.passport.audience)) return json({error: 'Передайте от одного до десяти сегментов с названием и размером.'}, 400, {'X-RateLimit-Remaining': String(quota.remaining)});
+        if (!hasValidSituation(payload.passport.situation)) return json({error: 'Передайте от одной до десяти заполненных проблем или отметьте инициативу бизнеса.'}, 400, {'X-RateLimit-Remaining': String(quota.remaining)});
 
         const formalIssues = reviewWithRules(payload.passport);
         if (formalIssues.length) {

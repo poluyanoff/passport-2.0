@@ -6,6 +6,22 @@ function text(value) {
     return String(value || '').trim();
 }
 
+export function hasValidAudience(audience) {
+    return Array.isArray(audience) && audience.length > 0 && audience.length <= 10 && audience.every(segment =>
+        segment && typeof segment === 'object' && text(segment.name) && (text(segment.count) || text(segment.share)),
+    );
+}
+
+export function hasValidSituation(situation) {
+    return situation && typeof situation === 'object' && !Array.isArray(situation)
+        && typeof situation.businessInitiative === 'boolean'
+        && Array.isArray(situation.problems)
+        && situation.problems.length <= 10
+        && (situation.businessInitiative || situation.problems.length > 0)
+        && situation.problems.every(problem => problem && typeof problem === 'object'
+            && text(problem.context) && text(problem.difficulty) && text(problem.consequence) && text(problem.frequency));
+}
+
 function isSpecific(value, minLength = 12) {
     const normalized = text(value).toLowerCase();
     return normalized.length >= minLength && !GENERIC_VALUES.includes(normalized);
@@ -22,11 +38,12 @@ export function reviewWithRules(passport) {
     const hypotheses = Array.isArray(passport.hypotheses) ? passport.hypotheses : [];
     const metrics = Array.isArray(passport.metrics) ? passport.metrics : [];
 
-    if (!situation.businessInitiative && (!isSpecific(situation.context) || !isSpecific(situation.difficulty) || !isSpecific(situation.consequence))) {
+    const problems = Array.isArray(situation.problems) ? situation.problems : [];
+    if (!situation.businessInitiative && problems.some(problem => !isSpecific(problem.context) || !isSpecific(problem.difficulty) || !isSpecific(problem.consequence))) {
         issues.push(issue({
-            id: 'situation-specificity', step: 1, title: 'Нужна базовая детализация ситуации',
-            description: 'Формальная проверка не подтвердила заполненность одного или нескольких полей: текст короче 12 символов либо похож на шаблонный ответ. Смысл ситуации на этом этапе не анализировался.',
-            recommendation: 'Дополните контекст, затруднение и последствие конкретными формулировками — затем запустится AI-проверка смысла.',
+            id: 'situation-specificity', step: 1, title: 'Нужна базовая детализация проблемы',
+            description: 'Формальная проверка не подтвердила заполненность одного или нескольких полей в проблемах: текст короче 12 символов либо похож на шаблонный ответ. Смысл проблем на этом этапе не анализировался.',
+            recommendation: 'Дополните контекст, затруднение и последствие конкретными формулировками в каждой проблеме — затем запустится AI-проверка смысла.',
         }));
     }
     if (!business.impacts?.length && !isSpecific(business.comment)) {

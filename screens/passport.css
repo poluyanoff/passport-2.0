@@ -19,9 +19,13 @@
 }
 
 .passport-choices,
+.passport-segments,
+.passport-problems,
 .passport-metrics,
 .passport-reference,
 .passport-hypotheses,
+.passport-segment-list,
+.passport-problem-list,
 .passport-hypothesis-list,
 .passport-metric-list {
     display: grid;
@@ -165,24 +169,20 @@
     display: contents;
 }
 
+.passport-segment-list {
+    display: contents;
+}
+
+.passport-problem-list {
+    display: contents;
+}
+
 .passport-metric-list {
     display: contents;
 }
 
 .passport-add-metric:hover .passport-add-metric__icon {
     background: var(--tui-background-neutral-1-hover);
-}
-
-.passport-demo-action {
-    position: fixed;
-    right: 32px;
-    bottom: 32px;
-    z-index: 30;
-}
-
-.passport-demo-action .tui-tooltip-pop {
-    left: auto !important;
-    right: 0;
 }
 
 @media (max-width: 720px) {
@@ -201,8 +201,4 @@
         grid-template-columns: 1fr;
     }
 
-    .passport-demo-action {
-        right: 16px;
-        bottom: 16px;
-    }
 }

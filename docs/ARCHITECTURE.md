@@ -33,7 +33,7 @@ flowchart LR
 
 Для `PassportTextarea` геометрия label и области ввода должна быть неизменна вне фокуса, в фокусе и после ввода: иначе `tui-textarea` меняет высоту контейнера на несколько пикселей. При изменениях textarea проверяйте в браузере `getBoundingClientRect()` для поля до и после `focus()` — высота контейнера и Y-координата области ввода должны совпадать.
 
-В `passport.hypotheses` передаётся массив гипотез с полями `if`, `then` и `because`; пустой массив допустим. Каждый объект в `passport.metrics` содержит `name`, `current`, `unit`, `currentDate` и `target`; `currentDate` может быть `null`. Формат должны синхронно понимать frontend, `shared/review-rules.mjs`, Node API и Worker API.
+В `passport.audience` передаётся массив сегментов с полями `name`, `count` и `share`; в каждом сегменте заполнены `name` и хотя бы одно из полей размера. В `passport.situation` передаются общий флаг `businessInitiative` и массив `problems` (не более десяти) с полями `context`, `difficulty`, `consequence` и `frequency`; для неинициативной задачи в массиве должна быть хотя бы одна полностью заполненная проблема. В `passport.hypotheses` передаётся массив гипотез с полями `if`, `then` и `because`; пустой массив допустим. Каждый объект в `passport.metrics` содержит `name`, `current`, `unit`, `currentDate` и `target`; `currentDate` может быть `null`. Формат должны синхронно понимать frontend, `shared/review-rules.mjs`, Node API и Worker API.
 
 ### Сценарий пользователя
 

@@ -1,4 +1,4 @@
-import {FORMAL_REVIEW_WARNING, reviewWithRules} from '../shared/review-rules.mjs';
+import {FORMAL_REVIEW_WARNING, hasValidAudience, hasValidSituation, reviewWithRules} from '../shared/review-rules.mjs';
 
 const MOCK_DELAY_MS = 5000;
 
@@ -11,6 +11,8 @@ function wait(ms) {
 export function validateReviewRequest(payload) {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return 'Передайте объект с паспортом.';
     if (!payload.passport || typeof payload.passport !== 'object' || Array.isArray(payload.passport)) return 'Передайте данные паспорта.';
+    if (!hasValidAudience(payload.passport.audience)) return 'Передайте от одного до десяти сегментов с названием и размером.';
+    if (!hasValidSituation(payload.passport.situation)) return 'Передайте от одной до десяти заполненных проблем или отметьте инициативу бизнеса.';
     return null;
 }
 

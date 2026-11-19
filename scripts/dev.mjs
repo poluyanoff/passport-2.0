@@ -21,8 +21,7 @@ for (const page of pages) {
   await copyFile(page, join('dist', page));
   entryPoints[join(dir, 'entry')] = join(dir, 'entry.js');
 }
-const isDevelopment = !process.argv.includes('--build');
-const options = { entryPoints, bundle: true, outdir: 'dist', format: 'esm', logLevel: 'info', define: {__PASSPORT_DEMO__: JSON.stringify(isDevelopment)} };
+const options = {entryPoints, bundle: true, outdir: 'dist', format: 'esm', logLevel: 'info'};
 if (process.argv.includes('--build')) {
   await esbuild.build({ ...options, minify: true });
 } else {
