@@ -225,6 +225,50 @@ function PassportExampleDial({filled, onAction, onReset}) {
     );
 }
 
+function useAdaptiveStickyFooter(step) {
+    const [sticky, setSticky] = React.useState(false);
+
+    React.useLayoutEffect(() => {
+        let frame = 0;
+        let delay = 0;
+        const measure = () => {
+            const dialog = document.querySelector('.tui-dlg--full.tui-dlg--inline:not(.tui-dlg--under)')
+                || document.querySelector('.tui-dlg--full:not(.tui-dlg--under)');
+            const screen = dialog?.querySelector('.tui-dlg__screen');
+            const content = dialog?.querySelector('.tui-dlg__col--in .tui-dlg__content')
+                || dialog?.querySelector('.tui-dlg__steps > .tui-dlg__col:last-child .tui-dlg__content');
+            const footer = dialog?.querySelector('.tui-dlg__dock-in, .tui-dlg__footer');
+            if (!screen || !content) return;
+
+            const contentBottom = content.getBoundingClientRect().bottom;
+            const footerHeight = footer?.getBoundingClientRect().height || 56;
+            const availableBottom = Math.min(screen.getBoundingClientRect().bottom, window.innerHeight);
+            const nextSticky = contentBottom + 32 + footerHeight + 48 > availableBottom;
+            setSticky(current => current === nextSticky ? current : nextSticky);
+        };
+        const scheduleMeasure = () => {
+            window.cancelAnimationFrame(frame);
+            frame = window.requestAnimationFrame(measure);
+        };
+        const steps = document.querySelector('.tui-dlg--full.tui-dlg--inline:not(.tui-dlg--under) .tui-dlg__steps')
+            || document.querySelector('.tui-dlg--full:not(.tui-dlg--under) .tui-dlg__steps');
+        const observer = new MutationObserver(scheduleMeasure);
+        if (steps) observer.observe(steps, {childList: true, subtree: true});
+        window.addEventListener('resize', scheduleMeasure);
+        scheduleMeasure();
+        delay = window.setTimeout(scheduleMeasure, 350);
+
+        return () => {
+            window.cancelAnimationFrame(frame);
+            window.clearTimeout(delay);
+            observer.disconnect();
+            window.removeEventListener('resize', scheduleMeasure);
+        };
+    }, [step]);
+
+    return sticky;
+}
+
 function Passport({platform}) {
     const [step, setStep] = React.useState(0);
     const [showError, setShowError] = React.useState(false);
@@ -254,6 +298,7 @@ function Passport({platform}) {
     const [, title, description] = STEPS[step];
     const mobile = platform === 'mobile';
     const [demoFilled, setDemoFilled] = React.useState(false);
+    const stickyFooter = useAdaptiveStickyFooter(step);
     const minStartDate = new Date().toISOString().slice(0, 10);
 
     React.useEffect(() => {
@@ -754,7 +799,7 @@ function Passport({platform}) {
         title, description,
         progress: (step + 1) / STEPS.length, step, stepDirection: 'forward',
         onBack: step ? () => { setShowError(false); setStep(current => current - 1); } : undefined,
-        stickyFooter: true,
+        stickyFooter,
         actions: [
             (step === 4 || step === 6) && {label: 'Пропустить', appearance: 'flat', onClick: skip},
             {label: reviewStep !== null ? 'Готово' : step === STEPS.length - 1 ? 'Проверить задачу' : 'Дальше', onClick: next},
