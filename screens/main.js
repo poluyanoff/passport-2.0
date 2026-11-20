@@ -16,6 +16,7 @@ const STEPS = [
     ['metrics', 'Как оценим результат', 'Укажите метрики, по которым поймёте результат'],
     ['refs', 'Что уже сделано другими', 'Покажите аналоги и что берете из них в решение'],
     ['why', 'Когда нужен результат', 'Число, к которому дизайн должен быть готов'],
+    ['summary', 'Проверьте данные', 'Убедитесь, что всё верно перед отправкой на проверку'],
 ];
 const SHARES = ['до 1%', '1–5%', '5–10%', '10–25%', '25–50%', 'более 50%'];
 const SEGMENT_TYPES = ['Клиент', 'Сотрудник'];
@@ -45,6 +46,7 @@ const EXAMPLE_DIAL_CONFIG = {
     good: {type: 'action', label: 'Хороший пример'},
     fallback: {type: 'action', label: 'Падает на fallback'},
     ai: {type: 'action', label: 'Падает на AI-проверке'},
+    extreme: {type: 'action', label: 'Экстремальные данные'},
 };
 const EXAMPLE_DIAL_CONTROLS = Object.entries(EXAMPLE_DIAL_CONFIG).map(([path, control]) => ({type: 'action', path, label: control.label}));
 let entitySequence = 0;
@@ -103,6 +105,12 @@ function formatSegmentShare(value) {
 
 function formatSegmentDescription(segment) {
     return [formatSegmentCount(segment.count), formatSegmentShare(segment.share)].filter(Boolean).join(' · ');
+}
+
+function formatLongDate(value) {
+    const [year, month, day] = String(value || '').split('-');
+    const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    return year && month && day && months[Number(month) - 1] ? `${Number(day)} ${months[Number(month) - 1]} ${year}` : '';
 }
 
 function formatProblemDescription(problem) {
@@ -210,6 +218,29 @@ function PassportTextarea({label, labelOutside, value, onChange, disabled, inval
     });
 }
 
+function SummaryImpactTitle({impacts}) {
+    const root = React.useRef(null);
+    const [visibleCount, setVisibleCount] = React.useState(impacts.length);
+    const hiddenCount = impacts.length - visibleCount;
+    const text = [impacts.slice(0, visibleCount).join(', '), hiddenCount > 0 && `и ещё ${hiddenCount} факторов`].filter(Boolean).join(', ');
+
+    React.useLayoutEffect(() => {
+        const element = root.current;
+        if (!element || element.scrollHeight <= element.clientHeight + 1 || visibleCount === 0) return;
+        setVisibleCount(count => count - 1);
+    }, [text, visibleCount]);
+
+    React.useLayoutEffect(() => {
+        const element = root.current;
+        if (!element || typeof ResizeObserver === 'undefined') return undefined;
+        const observer = new ResizeObserver(() => setVisibleCount(impacts.length));
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [impacts.length]);
+
+    return h('span', {ref: root, className: 'passport-summary-impact-title'}, text);
+}
+
 function PassportExampleDial({filled, onAction, onReset}) {
     const dial = useDialKitController('Примеры паспорта', EXAMPLE_DIAL_CONFIG, {
         id: EXAMPLE_DIAL_ID,
@@ -307,7 +338,9 @@ function Passport({platform}) {
     const [referenceDetails, setReferenceDetails] = React.useState({});
     const [startDate, setStartDate] = React.useState(null);
     const [dateType, setDateType] = React.useState('');
-    const [, title, description] = STEPS[step];
+    const [summaryEditStep, setSummaryEditStep] = React.useState(null);
+    const activeStep = summaryEditStep === null ? step : summaryEditStep;
+    const [, title, description] = STEPS[activeStep];
     const mobile = platform === 'mobile';
     const [demoFilled, setDemoFilled] = React.useState(false);
     const stickyFooter = useAdaptiveStickyFooter(step);
@@ -453,6 +486,13 @@ function Passport({platform}) {
     }
 
     function next() {
+        if (summaryEditStep !== null) {
+            setSummaryEditStep(null);
+            setStep(STEPS.length - 1);
+            setShowError(false);
+            return;
+        }
+
         const validation = validationError();
         if (validation) {
             setShowError(true);
@@ -470,6 +510,12 @@ function Passport({platform}) {
     function skip() {
         setShowError(false);
         setStep(current => current + 1);
+    }
+
+    function editSummaryStep(nextStep) {
+        setSummaryEditStep(nextStep);
+        setShowError(false);
+        setStep(nextStep);
     }
 
     function editReviewIssue(issue) {
@@ -528,7 +574,7 @@ function Passport({platform}) {
     }
 
     function reset() {
-        setStep(0); setShowError(false); setSent(false); setChecking(false); setCheckingProgress(0); setReview(false); setReviewStep(null); setReviewIssues([]);
+        setStep(0); setShowError(false); setSent(false); setChecking(false); setCheckingProgress(0); setReview(false); setReviewStep(null); setReviewIssues([]); setSummaryEditStep(null);
         segments.reset(); setShowSegmentError(false); problems.reset(); setShowProblemError(false); setBusinessInitiative(false);
         setSources([]); setSourceLinks(''); setBusinessComment(''); setBusinessImpacts([]);
         hypotheses.reset(); setShowHypothesisError(false); metrics.reset(); setShowMetricError(false);
@@ -567,21 +613,36 @@ function Passport({platform}) {
                 metric: {name: 'Количество просмотров календаря', current: '300', unit: 'шт.', target: '900'},
                 reference: {links: 'https://example.com/city-events', take: 'Карточки мероприятий с датой и адресом'},
             },
+            extreme: {
+                segments: Array.from({length: MAX_SEGMENTS}, (_, index) => ({type: index % 2 ? 'Сотрудник' : 'Клиент', name: `Сегмент ${index + 1}: пользователи с очень длинным описанием роли и контекста использования продукта`, count: `${(index + 1) * 12_345} в месяц`, share: SHARES[index % SHARES.length]})),
+                problems: Array.from({length: MAX_PROBLEMS}, (_, index) => ({context: `Контекст ${index + 1}: пользователь проходит длинный многоэтапный сценарий подключения, в котором требуется собрать сведения из нескольких внутренних систем.`, difficulty: `Проблема ${index + 1}: не может быстро понять, какие действия обязательны, где найти документы и как проверить корректность каждого шага.`, consequence: `Последствие ${index + 1}: откладывает задачу, делает ошибки в данных, повторно обращается в поддержку и снижает вероятность завершения сценария.`, frequency: FREQUENCIES[index % FREQUENCIES.length]})),
+                sources: SOURCES, sourceLinks: 'https://example.com/research/long-report https://example.com/analytics/funnel https://example.com/interviews',
+                impacts: BUSINESS_IMPACTS, businessComment: 'Длинный комментарий о влиянии на выручку, стоимость поддержки, скорость подключения и удержание пользователей в ключевых сегментах.',
+                hypotheses: Array.from({length: MAX_HYPOTHESES}, (_, index) => ({if: `Гипотеза ${index + 1}: добавим понятный сценарий с примерами и контекстными подсказками на каждом этапе.`, then: `Пользователь ${index + 1} быстрее завершит подключение без обращения в поддержку.`, because: 'Сможет сразу увидеть требования, проверить результат и исправить данные до отправки формы.'})),
+                metrics: [
+                    {name: 'Конверсия в завершённое подключение', current: '12', unit: '%', target: '25'},
+                    {name: 'Время заполнения анкеты', current: '48', unit: 'минут', target: '20'},
+                    {name: 'Количество обращений в поддержку', current: '3200', unit: 'обращения', target: '1200'},
+                    {name: 'Число ошибок в заявках', current: '860', unit: 'заявки', target: '200'},
+                ],
+                references: REFERENCES, referenceDetails: Object.fromEntries(REFERENCES.map(reference => [reference, {links: `https://example.com/${encodeURIComponent(reference)}`, take: `Развёрнутый разбор подхода «${reference}» с примерами, ограничениями и объяснением, что применимо в нашей задаче.`}])),
+            },
         };
         const example = examples[kind] || examples.good;
         setStep(0); setShowError(false); setReview(false); setReviewStep(null); setReviewIssues([]);
-        segments.replace([{...createSegment(), ...example.segment}]);
-        problems.replace([{...createProblem(), ...example.problem}]);
+        segments.replace((example.segments || [example.segment]).map(segment => ({...createSegment(), ...segment})));
+        problems.replace((example.problems || [example.problem]).map(problem => ({...createProblem(), ...problem})));
         setBusinessInitiative(false);
         setSources(example.sources);
         setSourceLinks(example.sourceLinks);
         setBusinessImpacts(example.impacts); setBusinessComment(example.businessComment);
-        hypotheses.replace([{...createHypothesis(), ...example.hypothesis}]);
-        metrics.replace([{...createMetric(), ...example.metric, currentDate: new Date().toISOString().slice(0, 10)}]);
-        setReferences(['Прямые конкуренты']);
-        setReferenceDetails({'Прямые конкуренты': example.reference});
+        hypotheses.replace((example.hypotheses || [example.hypothesis]).map(hypothesis => ({...createHypothesis(), ...hypothesis})));
+        metrics.replace((example.metrics || [example.metric]).map(metric => ({...createMetric(), ...metric, currentDate: new Date().toISOString().slice(0, 10)})));
+        const exampleReferences = example.references || ['Прямые конкуренты'];
+        setReferences(exampleReferences);
+        setReferenceDetails(example.referenceDetails || {'Прямые конкуренты': example.reference});
         setStartDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
-        setDateType('Передача в разработку');
+        setDateType('3 амиго');
         setDemoFilled(true);
     }
 
@@ -658,10 +719,43 @@ function Passport({platform}) {
                                 h(T.Input, {label: 'Что берем и почему', value: referenceDetails[reference]?.take || '', onChange: value => updateReference(reference, 'take', value), placeholder: 'Что используем в своей задаче'}),
                             ),
                         )))
-                        : h('div', {className: 'passport-fields passport-date'}, h('div', {className: 'passport-date-fields'},
+                        : step === 7
+                            ? h('div', {className: 'passport-fields passport-date'}, h('div', {className: 'passport-date-fields'},
                             h(T.InputDate, {label: 'Дата', value: startDate, onChange: value => setStartDate(value), min: minStartDate, error: showError && (!startDate || startDate < minStartDate) ? 'Укажите дату не раньше сегодняшней' : undefined}),
                             h(T.Combobox, {label: 'Что за дата', value: dateType, onChange: value => setDateType(String(value || '')), items: DATE_TYPES, placeholder: 'Выберите или впишите', error: showError && !dateType.trim() ? 'Укажите, что произойдёт в эту дату' : undefined}),
-                        ));
+                            ))
+                            : h('div', {className: 'passport-summary'}, [
+                                ...segments.items.map(segment => ({
+                                    id: segment.id, caption: 'Аудитория',
+                                    title: [segment.type, segment.name].filter(Boolean).join(' · '),
+                                    description: formatSegmentDescription(segment), step: 0,
+                                })),
+                                ...problems.items.map((problem, index) => ({
+                                    id: problem.id, caption: problems.items.length > 1 ? `Проблема ${index + 1}` : 'Проблема', title: problem.difficulty,
+                                    description: [problem.context, problem.consequence, problem.frequency].filter(Boolean).join(' · '), step: 1,
+                                })),
+                                ...(!problems.items.length && businessInitiative ? [{id: 'business-initiative', caption: 'Проблема', title: 'Инициатива бизнеса', step: 1}] : []),
+                                ...(sources.length ? [{id: 'sources', caption: 'Данные', title: sources.join(', '), step: 2}] : []),
+                                ...(businessImpacts.length ? [{id: 'impacts', caption: 'Влияние на бизнес', title: h(SummaryImpactTitle, {impacts: businessImpacts}), step: 3}] : businessComment ? [{id: 'business-comment', caption: 'Влияние на бизнес', title: businessComment, step: 3}] : []),
+                                ...hypotheses.items.map((hypothesis, index) => ({
+                                    id: hypothesis.id, caption: `Гипотеза ${index + 1}`,
+                                    title: hypothesis.if, description: [hypothesis.then, hypothesis.because].filter(Boolean).join(' → '), step: 4,
+                                })),
+                                ...metrics.items.map((metric, index) => ({
+                                    id: metric.id, caption: metrics.items.length > 1 ? `Метрика ${index + 1}` : 'Метрика', title: metric.name,
+                                    description: metricRange(metric), step: 5,
+                                })),
+                                ...(references.length ? [{id: 'references', caption: 'Аналоги', title: references.join(', '), step: 6}] : []),
+                                ...(dateType && startDate ? [{id: 'deadline', caption: 'Срок', title: formatLongDate(startDate), description: dateType, step: 7}] : []),
+                            ].map(item => h(T.Cell, {
+                                key: item.id, caption: item.caption, title: item.title, description: item.description || undefined,
+                                titleLines: 2, descriptionLines: 2, inset: 'none',
+                                accessory: h(T.Button, {
+                                    appearance: 'flat', size: 'm', rounded: true, icon: 'small/pencil',
+                                    ariaLabel: `Редактировать: ${item.caption}`, title: `Редактировать: ${item.caption}`,
+                                    onClick: () => editSummaryStep(item.step),
+                                }),
+                            })));
 
     function epicDescription() {
         return [
@@ -806,12 +900,13 @@ function Passport({platform}) {
         open: true, inline: true, fullscreen: true, closeButton: false,
         platform: mobile ? 'mobile' : undefined, system: mobile ? 'ios' : undefined,
         title, description,
-        progress: (step + 1) / STEPS.length, step, stepDirection: 'forward',
-        onBack: step ? () => { setShowError(false); setStep(current => current - 1); } : undefined,
+        progress: summaryEditStep === null ? (step + 1) / STEPS.length : undefined,
+        step: summaryEditStep === null ? step : undefined, stepDirection: 'forward',
+        onBack: summaryEditStep === null && step ? () => { setShowError(false); setStep(current => current - 1); } : undefined,
         stickyFooter,
         actions: [
-            (step === 4 || step === 6) && {label: 'Пропустить', appearance: 'flat', onClick: skip},
-            {label: reviewStep !== null ? 'Готово' : step === STEPS.length - 1 ? 'Проверить задачу' : 'Дальше', onClick: next},
+            summaryEditStep === null && (step === 4 || step === 6) && {label: 'Пропустить', appearance: 'flat', onClick: skip},
+            {label: summaryEditStep !== null || reviewStep !== null ? 'Готово' : step === STEPS.length - 1 ? 'Проверить задачу' : 'Дальше', onClick: next},
         ].filter(Boolean),
     }, fields), demoAction, segmentEditor, problemEditor, hypothesisEditor, metricEditor);
 }

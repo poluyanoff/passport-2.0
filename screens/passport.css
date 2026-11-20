@@ -135,6 +135,34 @@
     max-width: 720px;
 }
 
+.passport-summary {
+    display: grid;
+    gap: 0;
+    inline-size: min(100%, 720px);
+    max-width: 720px;
+    min-width: 0;
+}
+
+.passport-summary > .tui-cell,
+.passport-summary .tui-cell__stack,
+.passport-summary .tui-cell__row,
+.passport-summary .tui-cell__title,
+.passport-summary .tui-cell__desc {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.passport-summary .tui-cell__stack {
+    overflow: hidden;
+}
+
+.passport-summary-impact-title {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
 .passport-textarea {
     --passport-textarea-height: 64px;
 }
