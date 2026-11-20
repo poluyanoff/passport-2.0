@@ -11,9 +11,15 @@ function wait(ms) {
 export function validateReviewRequest(payload) {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return 'Передайте объект с паспортом.';
     if (!payload.passport || typeof payload.passport !== 'object' || Array.isArray(payload.passport)) return 'Передайте данные паспорта.';
-    if (!hasValidAudience(payload.passport.audience)) return 'Передайте от одного до десяти сегментов с названием и размером.';
+    if (!hasValidAudience(payload.passport.audience)) return 'Передайте от одного до десяти сегментов с типом, названием и размером.';
     if (!hasValidSituation(payload.passport.situation)) return 'Передайте от одной до десяти заполненных проблем или отметьте инициативу бизнеса.';
     return null;
+}
+
+function passportForAiReview(passport) {
+    return passport.situation?.businessInitiative
+        ? {...passport, situation: {...passport.situation, problems: []}}
+        : passport;
 }
 
 export {reviewWithRules};
@@ -33,7 +39,7 @@ export async function reviewPassport(payload, {delayMs = MOCK_DELAY_MS} = {}) {
     if (process.env.AI_PROVIDER === 'openai') {
         try {
             const {reviewWithOpenAI} = await import('./openai.mjs');
-            const issues = await reviewWithOpenAI(payload.passport);
+            const issues = await reviewWithOpenAI(passportForAiReview(payload.passport));
             return {ok: true, status: 200, body: {status: 'completed', provider: 'openai', rulesVersion: REVIEW_RULES_VERSION, issues}};
         } catch (providerError) {
             return {

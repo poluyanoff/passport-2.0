@@ -2,7 +2,7 @@
   "name": "Инициатива бизнеса без проблемы пользователя",
   "expectedIssueIds": [],
   "passport": {
-    "audience": [{"name": "Новые продавцы", "count": "1 000 в квартал", "share": "1–5%"}],
+    "audience": [{"type": "Клиент", "name": "Новые продавцы", "count": "1 000 в квартал", "share": "1–5%"}],
     "situation": {"problems": [], "businessInitiative": true},
     "business": {"impacts": ["Репутация"], "comment": ""},
     "hypotheses": [],

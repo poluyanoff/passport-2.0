@@ -8,8 +8,8 @@ import 'dialkit/styles.css';
 const h = React.createElement;
 const TEXTAREA_HEIGHT = 64;
 const STEPS = [
-    ['problem', 'Кого касается проблема', 'Назовите сегмент и его размер'],
-    ['solution', 'Что происходит', 'Опишите проблему'],
+    ['problem', 'Кого касается проблема', 'Опишите аудиторию и её размер'],
+    ['solution', 'Что происходит', 'Опишите проблемы пользователей'],
     ['src', 'Какие есть данные', 'Отметьте, какие источники смотрели, и добавьте ссылки на артефакты'],
     ['business', 'Зачем это бизнесу', 'Во что инвестируем ресурсы команды'],
     ['hyp', 'Что предлагается сделать', 'Опишите идею решения или пропустите, если ждёте решение от дизайнера'],
@@ -18,22 +18,25 @@ const STEPS = [
     ['why', 'Когда нужен результат', 'Число, к которому дизайн должен быть готов'],
 ];
 const SHARES = ['до 1%', '1–5%', '5–10%', '10–25%', '25–50%', 'более 50%'];
-const SOURCES = ['Аналитика, выгрузка', 'Интервью с пользователями', 'Результат теста или A/B', 'Исследования', 'Обращения в поддержку', 'Проблема не требует подтверждения, опираемся на мнение команды'];
-const OPINION_SOURCE = SOURCES[SOURCES.length - 1];
+const SEGMENT_TYPES = ['Клиент', 'Сотрудник'];
+const SOURCES = ['Аналитика, выгрузка', 'Интервью с пользователями', 'Результат теста или A/B', 'Исследования', 'Обращения в поддержку', 'Экспертная оценка команды'];
 const BUSINESS_IMPACTS = [
     'Нарастить объём продаж и выручку',
     'Увеличить активность и охват аудитории',
     'Улучшить удержание пользователей / снизить отток',
     'Оптимизировать воронку',
+    'Улучшить CX',
     'Ускорить получение ценности от продукта',
     'Довести до маркет-нормал',
     'Избежать репутационных рисков',
     'Снизить затраты на ФОТ',
+    'Соблюсти регуляторные требования',
+    'Снизить клиентский негатив',
 ];
 const REFERENCES = ['Прямые конкуренты', 'Косвенные конкуренты', 'Аналоги внутри компании', 'Аналоги внутри отдела'];
 const FREQUENCIES = ['Несколько раз в день', 'Раз в день', 'Несколько раз в неделю', 'Несколько раз в месяц', 'Раз в месяц', 'Раз в квартал', 'Разово'];
-const DATE_TYPES = ['Старт разработки', 'Передача в разработку', 'Демонстрация бизнесу', 'Запуск в прод'];
-const METRIC_UNITS = ['%', '₽', 'шт.', 'обращения', 'заявки'];
+const DATE_TYPES = ['Старт разработки', '3 амиго', 'Демонстрация бизнесу', 'Запуск в прод'];
+const METRIC_UNITS = ['%', '₽', 'шт.', 'обращения', 'заявки', 'человек'];
 const MAX_SEGMENTS = 10;
 const MAX_PROBLEMS = 10;
 const MAX_HYPOTHESES = 10;
@@ -56,7 +59,7 @@ function createHypothesis() {
 }
 
 function createSegment() {
-    return {id: createEntityId('segment'), name: '', count: '', share: ''};
+    return {id: createEntityId('segment'), type: SEGMENT_TYPES[0], name: '', count: '', share: ''};
 }
 
 function createProblem() {
@@ -214,8 +217,17 @@ function PassportExampleDial({filled, onAction, onReset}) {
         onAction,
     });
     const [open, setOpen] = React.useState(false);
+    const root = React.useRef(null);
 
-    return h('div', {className: 'passport-example-dial dialkit-root', 'data-mode': 'popover', 'data-theme': 'dark', 'data-tui-check-ignore': ''},
+    React.useEffect(() => {
+        const closeOnOutsidePointerDown = event => {
+            if (!root.current?.contains(event.target)) setOpen(false);
+        };
+        document.addEventListener('pointerdown', closeOnOutsidePointerDown);
+        return () => document.removeEventListener('pointerdown', closeOnOutsidePointerDown);
+    }, []);
+
+    return h('div', {ref: root, className: 'passport-example-dial dialkit-root', 'data-mode': 'popover', 'data-theme': 'dark', 'data-tui-check-ignore': ''},
         h('div', {className: 'dialkit-panel', 'data-position': 'bottom-right'},
             h(Folder, {title: 'Примеры паспорта', open, onOpenChange: setOpen, isRoot: true},
                 h(ControlRenderer, {panelId: EXAMPLE_DIAL_ID, controls: EXAMPLE_DIAL_CONTROLS, values: dial.values}),
@@ -319,14 +331,7 @@ function Passport({platform}) {
     }
 
     function toggleSource(source, checked) {
-        if (source === OPINION_SOURCE) {
-            setSources(checked ? [OPINION_SOURCE] : []);
-            return;
-        }
-        setSources(current => checked
-            ? [...current.filter(value => value !== OPINION_SOURCE), source]
-            : current.filter(value => value !== source),
-        );
+        toggle(setSources, source, checked);
     }
 
     function updateReference(reference, key, value) {
@@ -584,11 +589,12 @@ function Passport({platform}) {
         ? h('div', {className: 'passport-segments'},
             h('button', {type: 'button', className: 'passport-add-metric passport-add-segment', onClick: openSegmentEditor},
                 h('span', {className: 'passport-add-metric__icon', 'aria-hidden': true}, h(T.Icon, {name: 'small-pragmatic/plus', size: 24})),
-                h('span', {className: 'tui-ui-m'}, 'Добавить сегмент'),
+                h('span', {className: 'tui-ui-m'}, 'Добавить сегмент аудитории'),
             ),
             h('div', {className: 'passport-segment-list'}, segments.items.map(segment => h(T.Cell, {
                 key: segment.id, avatar: 'medium/users', avatarTone: 'accent-2', title: segment.name,
                 description: formatSegmentDescription(segment),
+                titleLines: 2, descriptionLines: 2,
                 onClick: () => editSegment(segment),
             }))),
         )
@@ -601,13 +607,14 @@ function Passport({platform}) {
                 h('div', {className: 'passport-problem-list'}, problems.items.map(problem => h(T.Cell, {
                     key: problem.id, avatar: 'medium/alert-circle', avatarTone: 'accent-2', title: problem.difficulty,
                     description: problem.consequence,
+                titleLines: 2, descriptionLines: 2,
                     onClick: () => editProblem(problem),
                 }))),
                 h(T.Checkbox, {label: 'Явных проблем у пользователей нет. Задача — инициатива бизнеса', checked: businessInitiative, onChange: setBusinessInitiative}),
             )
         : step === 2
             ? h('div', {className: 'passport-fields'},
-                h('div', {className: 'passport-choices'}, SOURCES.map(source => h(T.Checkbox, {key: source, label: source, checked: sources.includes(source), disabled: sources.includes(OPINION_SOURCE) && source !== OPINION_SOURCE, onChange: checked => toggleSource(source, checked)}))),
+                h('div', {className: 'passport-choices'}, SOURCES.map(source => h(T.Checkbox, {key: source, label: source, checked: sources.includes(source), onChange: checked => toggleSource(source, checked)}))),
                 h(PassportTextarea, {label: 'Комментарии и ссылки на артефакты', value: sourceLinks, onChange: setSourceLinks, placeholder: 'Ссылки на выгрузки, интервью, исследования или результаты тестов'}),
             )
             : step === 3
@@ -624,6 +631,7 @@ function Passport({platform}) {
                         h('div', {className: 'passport-hypothesis-list'}, hypotheses.items.map((hypothesis, index) => h(T.Cell, {
                             key: hypothesis.id, avatar: 'lightbulb', avatarTone: 'accent-2', title: `Гипотеза ${index + 1}`,
                             description: [hypothesis.if, hypothesis.then, hypothesis.because].join(' → '),
+                            titleLines: 2, descriptionLines: 2,
                             onClick: () => editHypothesis(hypothesis),
                         }))),
                     )
@@ -658,7 +666,7 @@ function Passport({platform}) {
     function epicDescription() {
         return [
             'Аудитория',
-            ...segments.items.map(segment => [segment.name, formatSegmentDescription(segment)].filter(Boolean).join(' · ')),
+            ...segments.items.map(segment => [segment.type, segment.name, formatSegmentDescription(segment)].filter(Boolean).join(' · ')),
             ...(problems.items.length ? ['', 'Проблемы', ...problems.items.map((problem, index) => `${index + 1}. ${formatProblemDescription(problem)}`)] : []),
             ...(!problems.items.length && businessInitiative ? ['', 'Инициатива бизнеса без явной проблемы пользователя'] : []),
             '', 'Подтверждение', sources.join(', '), sourceLinks,
@@ -677,7 +685,7 @@ function Passport({platform}) {
         const section = (title, content) => content ? `<h2>${escapeHtml(title)}</h2><p>${escapeHtml(content).replace(/\n/g, '<br>')}</p>` : '';
         const list = (title, items, tag) => items.length ? `<h2>${title}</h2><${tag}>${items.map(item => `<li>${escapeHtml(item).replace(/\n/g, '<br>')}</li>`).join('')}</${tag}>` : '';
         return [
-            list('Аудитория', segments.items.map(segment => [segment.name, formatSegmentDescription(segment)].filter(Boolean).join(' · ')), 'ul'),
+            list('Аудитория', segments.items.map(segment => [segment.type, segment.name, formatSegmentDescription(segment)].filter(Boolean).join(' · ')), 'ul'),
             list('Проблемы', problems.items.map(formatProblemDescription), 'ol'),
             !problems.items.length && businessInitiative && section('Инициатива', 'Бизнес-инициатива без явной проблемы пользователя'),
             section('Подтверждение', [sources.join(', '), sourceLinks].filter(Boolean).join('\n')),
@@ -720,7 +728,7 @@ function Passport({platform}) {
     const isExistingSegment = segments.draft && segments.items.some(segment => segment.id === segments.draft.id);
     const closeSegmentEditor = () => { segments.cancel(); setShowSegmentError(false); };
     const segmentEditor = segments.draft && h(T.Dialog, {
-        open: true, size: 'm', title: 'Сегмент', description: 'Кого касается проблема',
+        open: true, size: 'm', title: 'Кого касается проблема',
         onClose: closeSegmentEditor,
         actions: [
             !isExistingSegment && {label: 'Отмена', appearance: 'flat', onClick: closeSegmentEditor},
@@ -728,6 +736,7 @@ function Passport({platform}) {
             {label: 'Сохранить', onClick: saveSegment},
         ].filter(Boolean),
     }, h('div', {className: 'passport-segment-fields'},
+        h(T.ChipGroup, {mode: 'single', value: segments.draft.type || SEGMENT_TYPES[0], onChange: value => updateSegment('type', value), items: SEGMENT_TYPES.map(value => ({label: value, value})), label: 'Тип сегмента'}),
         h(T.Input, {label: 'Название сегмента', value: segments.draft.name, onChange: value => updateSegment('name', value), invalid: showSegmentError && !segments.draft.name.trim(), error: showSegmentError && !segments.draft.name.trim() ? 'Укажите название сегмента' : undefined, placeholder: 'Новые селлеры на\u00a0подключении'}),
         h(T.Input, {label: 'Сколько человек', value: segments.draft.count, onChange: value => updateSegment('count', value), placeholder: 'Около 1 000 в\u00a0квартал'}),
         h(T.Select, {label: 'Доля от общей аудитории', value: segments.draft.share, onChange: value => updateSegment('share', value), items: SHARES, placeholder: 'Выберите долю', invalid: showSegmentError && !segments.draft.count.trim() && !segments.draft.share, error: showSegmentError && !segments.draft.count.trim() && !segments.draft.share ? 'Укажите количество или долю' : undefined}),
@@ -753,7 +762,7 @@ function Passport({platform}) {
     const isExistingHypothesis = hypotheses.draft && hypotheses.items.some(hypothesis => hypothesis.id === hypotheses.draft.id);
     const closeHypothesisEditor = () => { hypotheses.cancel(); setShowHypothesisError(false); };
     const hypothesisEditor = hypotheses.draft && h(T.Dialog, {
-        open: true, size: 'm', title: 'Гипотеза', description: 'Какое решение может решить проблему',
+        open: true, size: 'm', title: 'Гипотеза', description: 'Как можно решить проблему',
         onClose: closeHypothesisEditor,
         actions: [
             !isExistingHypothesis && {label: 'Отмена', appearance: 'flat', onClick: closeHypothesisEditor},
@@ -791,7 +800,7 @@ function Passport({platform}) {
         ),
     ));
 
-    const demoAction = h(PassportExampleDial, {filled: demoFilled, onAction: fillExample, onReset: reset});
+    const demoAction = h(PassportExampleDial, {key: 'examples', filled: demoFilled, onAction: fillExample, onReset: reset});
 
     return h(React.Fragment, null, h(T.Dialog, {
         open: true, inline: true, fullscreen: true, closeButton: false,
@@ -804,7 +813,7 @@ function Passport({platform}) {
             (step === 4 || step === 6) && {label: 'Пропустить', appearance: 'flat', onClick: skip},
             {label: reviewStep !== null ? 'Готово' : step === STEPS.length - 1 ? 'Проверить задачу' : 'Дальше', onClick: next},
         ].filter(Boolean),
-    }, h(React.Fragment, null, fields, demoAction)), segmentEditor, problemEditor, hypothesisEditor, metricEditor);
+    }, fields), demoAction, segmentEditor, problemEditor, hypothesisEditor, metricEditor);
 }
 
 export function Mobile() { return h(Passport, {platform: 'mobile'}); }

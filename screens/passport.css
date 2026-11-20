@@ -18,6 +18,10 @@
     grid-column: 1 / -1;
 }
 
+.passport-segment-fields > :nth-child(2) {
+    grid-column: 1 / -1;
+}
+
 .passport-choices,
 .passport-segments,
 .passport-problems,
@@ -30,6 +34,13 @@
 .passport-metric-list {
     display: grid;
     gap: 16px;
+    min-width: 0;
+}
+
+.passport-segment-list > *,
+.passport-problem-list > *,
+.passport-hypothesis-list > * {
+    min-width: 0;
 }
 
 .passport-metric {
@@ -164,18 +175,6 @@
 }
 
 .passport-add-metric__icon { width: 40px; height: 40px; }
-
-.passport-hypothesis-list {
-    display: contents;
-}
-
-.passport-segment-list {
-    display: contents;
-}
-
-.passport-problem-list {
-    display: contents;
-}
 
 .passport-metric-list {
     display: contents;

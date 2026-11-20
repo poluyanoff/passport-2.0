@@ -31,6 +31,12 @@ function normalizeIssues(value) {
     })).filter(item => item.description && item.recommendation);
 }
 
+function passportForAiReview(passport) {
+    return passport.situation?.businessInitiative
+        ? {...passport, situation: {...passport.situation, problems: []}}
+        : passport;
+}
+
 async function reviewWithOpenAI(passport, env) {
     if (!env.OPENAI_API_KEY) throw new Error('Не задан секрет OPENAI_API_KEY.');
     const response = await fetch('https://api.openai.com/v1/responses', {
@@ -91,7 +97,7 @@ export default {
             return json({error: error.message === 'Слишком большой запрос.' ? error.message : 'Некорректный JSON.'}, 400);
         }
         if (!payload?.passport || typeof payload.passport !== 'object') return json({error: 'Передайте данные паспорта.'}, 400);
-        if (!hasValidAudience(payload.passport.audience)) return json({error: 'Передайте от одного до десяти сегментов с названием и размером.'}, 400, {'X-RateLimit-Remaining': String(quota.remaining)});
+        if (!hasValidAudience(payload.passport.audience)) return json({error: 'Передайте от одного до десяти сегментов с типом, названием и размером.'}, 400, {'X-RateLimit-Remaining': String(quota.remaining)});
         if (!hasValidSituation(payload.passport.situation)) return json({error: 'Передайте от одной до десяти заполненных проблем или отметьте инициативу бизнеса.'}, 400, {'X-RateLimit-Remaining': String(quota.remaining)});
 
         const formalIssues = reviewWithRules(payload.passport);
@@ -101,7 +107,7 @@ export default {
 
         if (env.AI_PROVIDER === 'openai') {
             try {
-                const issues = await reviewWithOpenAI(payload.passport, env);
+                const issues = await reviewWithOpenAI(passportForAiReview(payload.passport), env);
                 return json({status: 'completed', provider: 'openai', rulesVersion: rules.version, issues}, 200, {'X-RateLimit-Remaining': String(quota.remaining)});
             } catch {
                 return json({status: 'fallback', provider: 'rules', rulesVersion: rules.version, issues: formalIssues, warning: 'AI-проверка временно недоступна. Формальные признаки полей пройдены; содержательная проверка не выполнена.'}, 200, {'X-RateLimit-Remaining': String(quota.remaining)});

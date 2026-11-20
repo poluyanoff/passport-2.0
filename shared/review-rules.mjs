@@ -8,7 +8,7 @@ function text(value) {
 
 export function hasValidAudience(audience) {
     return Array.isArray(audience) && audience.length > 0 && audience.length <= 10 && audience.every(segment =>
-        segment && typeof segment === 'object' && text(segment.name) && (text(segment.count) || text(segment.share)),
+        segment && typeof segment === 'object' && ['Клиент', 'Сотрудник'].includes(segment.type) && text(segment.name) && (text(segment.count) || text(segment.share)),
     );
 }
 
@@ -18,8 +18,8 @@ export function hasValidSituation(situation) {
         && Array.isArray(situation.problems)
         && situation.problems.length <= 10
         && (situation.businessInitiative || situation.problems.length > 0)
-        && situation.problems.every(problem => problem && typeof problem === 'object'
-            && text(problem.context) && text(problem.difficulty) && text(problem.consequence) && text(problem.frequency));
+        && (situation.businessInitiative || situation.problems.every(problem => problem && typeof problem === 'object'
+            && text(problem.context) && text(problem.difficulty) && text(problem.consequence) && text(problem.frequency)));
 }
 
 function isSpecific(value, minLength = 12) {
